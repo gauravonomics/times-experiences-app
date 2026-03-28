@@ -37,6 +37,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       templates: {
         Row: {
@@ -69,6 +70,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       accounts: {
         Row: {
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       events: {
         Row: {
@@ -163,6 +166,22 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'events_brand_id_fkey'
+            columns: ['brand_id']
+            isOneToOne: false
+            referencedRelation: 'brands'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'events_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'accounts'
+            referencedColumns: ['id']
+          },
+        ]
       }
       rsvps: {
         Row: {
@@ -204,6 +223,22 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'rsvps_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'rsvps_account_id_fkey'
+            columns: ['account_id']
+            isOneToOne: false
+            referencedRelation: 'accounts'
+            referencedColumns: ['id']
+          },
+        ]
       }
       agent_conversations: {
         Row: {
@@ -227,8 +262,18 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'agent_conversations_account_id_fkey'
+            columns: ['account_id']
+            isOneToOne: false
+            referencedRelation: 'accounts'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
+    Views: Record<string, never>
     Functions: {
       is_admin: {
         Args: Record<string, never>

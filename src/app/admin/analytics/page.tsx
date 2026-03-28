@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
   const apiUrl = dateRangeInvalid ? null : `/api/admin/analytics?${params.toString()}`
 
   const { data, isLoading } = useSWR<AnalyticsData>(apiUrl, fetcher)
-  const { data: brandsData } = useSWR<BrandsResponse>(
+  const { data: brandsData, isLoading: brandsLoading } = useSWR<BrandsResponse>(
     '/api/admin/brands',
     fetcher,
   )
@@ -198,9 +198,10 @@ export default function AnalyticsPage() {
         <Select
           value={brandId ?? ''}
           onValueChange={(v) => setBrandId(v === '' ? null : (v as string))}
+          disabled={brandsLoading}
         >
           <SelectTrigger size="sm">
-            <SelectValue placeholder="All Brands" />
+            <SelectValue placeholder={brandsLoading ? "Loading brands..." : "All Brands"} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Brands</SelectItem>

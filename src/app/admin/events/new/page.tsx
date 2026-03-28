@@ -43,11 +43,11 @@ export default function CreateEventPage() {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
 
   // Fetch brands and templates
-  const { data: brandsData } = useSWR<{ brands: Brand[] }>(
+  const { data: brandsData, isLoading: brandsLoading } = useSWR<{ brands: Brand[] }>(
     '/api/admin/brands',
     fetcher,
   )
-  const { data: templatesData } = useSWR<{ templates: Template[] }>(
+  const { data: templatesData, isLoading: templatesLoading } = useSWR<{ templates: Template[] }>(
     '/api/admin/templates',
     fetcher,
   )
@@ -174,14 +174,14 @@ export default function CreateEventPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Template selector */}
-        {templates.length > 0 && (
+        {(templatesLoading || templates.length > 0) && (
           <div className="rounded-lg border bg-muted/30 p-4">
             <Label className="mb-2 block text-sm font-medium">
               Start from a template
             </Label>
-            <Select<string> onValueChange={(v) => { if (v) applyTemplate(v) }}>
+            <Select<string> onValueChange={(v) => { if (v) applyTemplate(v) }} disabled={templatesLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a template..." />
+                <SelectValue placeholder={templatesLoading ? "Loading templates..." : "Choose a template..."} />
               </SelectTrigger>
               <SelectContent>
                 {templates.map((t) => (
@@ -221,9 +221,9 @@ export default function CreateEventPage() {
           </div>
           <div>
             <Label htmlFor="brand">Brand *</Label>
-            <Select value={brandId} onValueChange={(v) => { if (v) setBrandId(v) }}>
+            <Select value={brandId} onValueChange={(v) => { if (v) setBrandId(v) }} disabled={brandsLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a brand..." />
+                <SelectValue placeholder={brandsLoading ? "Loading brands..." : "Select a brand..."} />
               </SelectTrigger>
               <SelectContent>
                 {brands.map((b) => (

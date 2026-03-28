@@ -56,10 +56,11 @@ export function AccountPrompt({ email, name }: AccountPromptProps) {
           value={email}
           readOnly
           aria-label="Email address"
-          className="flex-1 bg-muted/50 text-muted-foreground"
+          className="flex-1 h-11 bg-muted/50 text-muted-foreground"
         />
         <Button
           size="sm"
+          className="h-11"
           onClick={handleSendLink}
           disabled={status === 'sending'}
         >

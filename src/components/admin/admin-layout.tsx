@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { SWRConfig } from 'swr'
+import { toast } from 'sonner'
 import { TopNav } from '@/components/admin/top-nav'
 import { ContextPanel } from '@/components/admin/context-panel'
 import { ChatDrawer } from '@/components/admin/chat-drawer'
@@ -98,33 +100,35 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   useSuggestionClickListener(handleSuggestionClick)
 
   return (
-    <div className="flex h-screen flex-col">
-      <TopNav
-        drawerOpen={drawerOpen}
-        onToggleDrawer={toggleDrawer}
-      />
+    <SWRConfig value={{ onError: (err: Error) => toast.error(err.message || 'Failed to load data') }}>
+      <div className="flex h-screen flex-col">
+        <TopNav
+          drawerOpen={drawerOpen}
+          onToggleDrawer={toggleDrawer}
+        />
 
-      <div
-        className="grid flex-1 overflow-hidden transition-[grid-template-columns] duration-200"
-        style={{
-          gridTemplateColumns: mounted && drawerOpen ? 'minmax(500px, 1fr) 400px' : '1fr',
-        }}
-      >
-        <ContextPanel>{children}</ContextPanel>
+        <div
+          className="grid flex-1 overflow-hidden transition-[grid-template-columns] duration-200"
+          style={{
+            gridTemplateColumns: mounted && drawerOpen ? 'minmax(500px, 1fr) 400px' : '1fr',
+          }}
+        >
+          <ContextPanel>{children}</ContextPanel>
 
-        {drawerOpen && (
-          <ChatDrawer
-            onClose={() => setDrawerOpen(false)}
-            currentView={currentView}
-            currentViewData={currentViewData}
-            onViewChange={handleViewChange}
-            externalMessage={externalMessage}
-            onExternalMessageConsumed={handleExternalMessageConsumed}
-          />
-        )}
+          {drawerOpen && (
+            <ChatDrawer
+              onClose={() => setDrawerOpen(false)}
+              currentView={currentView}
+              currentViewData={currentViewData}
+              onViewChange={handleViewChange}
+              externalMessage={externalMessage}
+              onExternalMessageConsumed={handleExternalMessageConsumed}
+            />
+          )}
+        </div>
+        <Toaster />
       </div>
-      <Toaster />
-    </div>
+    </SWRConfig>
   )
 }
 

@@ -63,7 +63,7 @@ export default function EditEventPage() {
   )
 
   // Fetch brands
-  const { data: brandsData } = useSWR<{ brands: Brand[] }>(
+  const { data: brandsData, isLoading: brandsLoading } = useSWR<{ brands: Brand[] }>(
     '/api/admin/brands',
     fetcher,
   )
@@ -196,9 +196,9 @@ export default function EditEventPage() {
           </div>
           <div>
             <Label htmlFor="brand">Brand *</Label>
-            <Select value={brandId} onValueChange={(v) => { if (v) setBrandId(v) }}>
+            <Select value={brandId} onValueChange={(v) => { if (v) setBrandId(v) }} disabled={brandsLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a brand..." />
+                <SelectValue placeholder={brandsLoading ? "Loading brands..." : "Select a brand..."} />
               </SelectTrigger>
               <SelectContent>
                 {brands.map((b) => (

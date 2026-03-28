@@ -361,6 +361,7 @@ export function RsvpForm({
             required
             minLength={2}
             disabled={formState === 'submitting'}
+            className="h-11"
           />
         </div>
 
@@ -375,6 +376,7 @@ export function RsvpForm({
             onBlur={handleEmailBlur}
             required
             disabled={formState === 'submitting'}
+            className="h-11"
           />
           {formState === 'checking' && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -395,13 +397,14 @@ export function RsvpForm({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             disabled={formState === 'submitting'}
+            className="h-11"
           />
         </div>
 
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          className="w-full h-11"
           disabled={formState === 'submitting' || formState === 'checking'}
         >
           {formState === 'submitting' ? (

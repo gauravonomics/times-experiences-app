@@ -28,13 +28,14 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
     <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="outline"
-        size="sm"
+        size="default"
+        className="h-11"
         onClick={() => window.open(googleUrl, '_blank')}
       >
         <Calendar className="size-3.5" />
         Google Calendar
       </Button>
-      <Button variant="outline" size="sm" onClick={handleIcsDownload}>
+      <Button variant="outline" size="default" className="h-11" onClick={handleIcsDownload}>
         <Calendar className="size-3.5" />
         Download .ics
       </Button>

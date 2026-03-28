@@ -1,4 +1,4 @@
-import type { Event, Brand, Template } from '@/lib/supabase/types'
+import type { Event, Brand, Template, Rsvp } from '@/lib/supabase/types'
 
 export type EventWithBrand = Event & { brand: Brand }
 
@@ -15,4 +15,16 @@ export interface EventDetailResponse {
 
 export interface EventListResponse {
   events: EventWithBrand[]
+}
+
+export interface RsvpListResponse {
+  rsvps: Rsvp[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export interface RsvpUpdateResponse {
+  rsvp: Rsvp
+  promoted?: Rsvp
 }

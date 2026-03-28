@@ -283,6 +283,14 @@ export default function EventDetailPage() {
                     Waitlist enabled
                   </p>
                 )}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="mt-2 h-auto p-0 text-xs"
+                  onClick={() => router.push(`/admin/events/${id}/rsvps`)}
+                >
+                  Manage RSVPs
+                </Button>
               </div>
             </div>
           </Card>

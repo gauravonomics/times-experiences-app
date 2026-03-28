@@ -1,10 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import type { FunctionCallLogEntry } from './types'
 
-export function logFunctionCall(entry: FunctionCallLogEntry): void {
+export async function logFunctionCall(entry: FunctionCallLogEntry): Promise<void> {
   const supabase = createServiceClient()
 
-  supabase
+  const { error } = await supabase
     .from('function_call_logs')
     .insert({
       conversation_id: entry.conversation_id,
@@ -15,7 +15,6 @@ export function logFunctionCall(entry: FunctionCallLogEntry): void {
       error: entry.error ?? null,
       latency_ms: entry.latency_ms,
     })
-    .then(({ error }) => {
-      if (error) console.error('[agent/logger] Failed to log function call:', error.message)
-    })
+
+  if (error) console.error('[agent/logger] Failed to log function call:', error.message)
 }

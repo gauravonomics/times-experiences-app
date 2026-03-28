@@ -21,16 +21,32 @@ import { MUTATION_TOOLS } from '@/lib/agent/types'
 
 const openai = new OpenAI()
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MAX_MESSAGE_LENGTH = 4_000
+const PENDING_CONFIRMATION_TTL_MS = 10 * 60 * 1000 // 10 minutes
+
 // ---------------------------------------------------------------------------
-// Rate limiter — 20 requests per minute per admin
+// Rate limiter — 20 requests per minute per admin, with cleanup
 // ---------------------------------------------------------------------------
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 20
 const RATE_WINDOW_MS = 60_000
+let rateBucketCleanupCounter = 0
 
 function checkRateLimit(adminId: string): boolean {
   const now = Date.now()
+
+  // Periodic cleanup every 100 calls to prevent memory growth
+  if (++rateBucketCleanupCounter % 100 === 0) {
+    for (const [id, bucket] of rateBuckets) {
+      if (now > bucket.resetAt) rateBuckets.delete(id)
+    }
+    for (const [id, map] of failedAttempts) {
+      if (map.size === 0) failedAttempts.delete(id)
+    }
+  }
+
   const bucket = rateBuckets.get(adminId)
 
   if (!bucket || now > bucket.resetAt) {
@@ -73,15 +89,50 @@ function getSuggestedActions(toolName: AgentToolName): Array<{ label: string; ac
       { label: 'List all events', action: 'Show me all events' },
       { label: 'Duplicate instead', action: 'Duplicate this event' },
     ],
+    list_events: [
+      { label: 'View analytics', action: 'Show me analytics' },
+      { label: 'Check a specific event', action: 'Show me details for the latest event' },
+      { label: 'Create new event', action: 'Create a new event' },
+    ],
+    get_event_details: [
+      { label: 'List all events', action: 'Show me all events' },
+      { label: 'View RSVPs', action: 'Show me the guest list for this event' },
+      { label: 'View analytics', action: 'Show me analytics' },
+    ],
+    list_rsvps: [
+      { label: 'View event details', action: 'Show me this event\'s details' },
+      { label: 'Export guest list', action: 'Export the RSVP list' },
+      { label: 'View analytics', action: 'Show me analytics' },
+    ],
     manage_rsvps: [
-      { label: 'View event RSVPs', action: 'Show me this event\'s details' },
+      { label: 'View guest list', action: 'Show me the guest list for this event' },
       { label: 'Export guest list', action: 'Export the RSVP list' },
       { label: 'List events', action: 'Show me all events' },
+    ],
+    duplicate_event: [
+      { label: 'View source event', action: 'Show me this event\'s details' },
+      { label: 'Create from scratch', action: 'Create a new event' },
+      { label: 'Use a template', action: 'Show me available templates' },
+    ],
+    create_template: [
+      { label: 'List events', action: 'Show me all events' },
+      { label: 'Create event instead', action: 'Create a new event' },
+      { label: 'View analytics', action: 'Show me analytics' },
+    ],
+    export_rsvps: [
+      { label: 'View guest list', action: 'Show me the guest list for this event' },
+      { label: 'View event details', action: 'Show me this event\'s details' },
+      { label: 'View analytics', action: 'Show me analytics' },
     ],
     manage_brands: [
       { label: 'List brands', action: 'Show me all brands' },
       { label: 'List events', action: 'Show me all events' },
       { label: 'View analytics', action: 'Show me analytics' },
+    ],
+    get_analytics: [
+      { label: 'List events', action: 'Show me all events' },
+      { label: 'Check a specific event', action: 'Show me details for the latest event' },
+      { label: 'Check brands', action: 'List all brands' },
     ],
   }
   return suggestions[toolName] ?? [
@@ -103,11 +154,25 @@ function sseEncode(event: SSEEvent): string {
 // System prompt context builder
 // ---------------------------------------------------------------------------
 
+function sanitizeViewData(raw?: Record<string, string>): Record<string, string> | undefined {
+  if (!raw) return undefined
+  const clean: Record<string, string> = {}
+  for (const [key, val] of Object.entries(raw)) {
+    if (typeof val !== 'string') continue
+    // Only allow known keys with safe values (UUIDs for IDs, short strings for others)
+    if ((key === 'eventId' || key === 'brandId') && !UUID_RE.test(val)) continue
+    clean[key] = val.slice(0, 200)
+  }
+  return Object.keys(clean).length > 0 ? clean : undefined
+}
+
 async function buildContextForPrompt(
   adminId: string,
   currentView: ViewType,
-  currentViewData?: Record<string, string>
+  currentViewData?: Record<string, string>,
+  dismissedSuggestions?: string[]
 ): Promise<string> {
+  // Read-only context building via service client (not agent operations)
   const supabase = createServiceClient()
 
   const today = new Date().toISOString().split('T')[0]
@@ -118,7 +183,7 @@ async function buildContextForPrompt(
   const [eventsResult, brandsResult, recentEventResult, adminResult] = await Promise.all([
     supabase
       .from('events')
-      .select('id, title, date, status, city, capacity, brand:brands(id, name, slug)')
+      .select('id, title, type, date, status, city, capacity, brand:brands(id, name, slug)')
       .gte('date', today)
       .lte('date', threeMonthsFromNow)
       .order('date'),
@@ -145,15 +210,14 @@ async function buildContextForPrompt(
   const primaryBrandId = recentEventResult.data?.brand_id ?? null
   const adminName = adminResult.data?.name ?? 'Admin'
 
-  // Resolve primary brand slug from ID
   const primaryBrand = primaryBrandId
     ? brands.find((b) => b.id === primaryBrandId)?.slug ?? ''
     : brands[0]?.slug ?? ''
 
-  // Count confirmed RSVPs per event
   type UpcomingEvent = {
     id: string
     title: string
+    type: string
     date: string
     brand: string
     status: string
@@ -181,6 +245,7 @@ async function buildContextForPrompt(
       upcomingEvents.push({
         id: event.id,
         title: event.title,
+        type: (event as Record<string, unknown>).type as string ?? '',
         date: event.date ?? '',
         brand: brand?.name ?? 'Unassigned',
         status: event.status ?? 'draft',
@@ -196,8 +261,9 @@ async function buildContextForPrompt(
     brands,
     primaryBrand,
     currentView,
-    currentViewData,
+    currentViewData: sanitizeViewData(currentViewData),
     adminName,
+    dismissedSuggestions,
   })
 }
 
@@ -296,6 +362,14 @@ function toOpenAIMessages(
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request): Promise<Response> {
+  // 0. OpenAI key guard
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: 'AI service temporarily unavailable.' },
+      { status: 503 }
+    )
+  }
+
   // 1. Auth
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
@@ -310,7 +384,7 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
-  // 2. Parse body
+  // 2. Parse and validate body
   let body: ChatRequest
   try {
     body = await request.json()
@@ -318,9 +392,23 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  if (!body.messages || !body.context) {
+  if (
+    !body.messages ||
+    !Array.isArray(body.messages) ||
+    !body.context ||
+    typeof body.context.currentView !== 'string'
+  ) {
     return NextResponse.json(
-      { error: 'messages and context are required.' },
+      { error: 'messages (array) and context.currentView (string) are required.' },
+      { status: 400 }
+    )
+  }
+
+  // Cap message content length
+  const lastMessage = body.messages[body.messages.length - 1]
+  if (lastMessage?.content && lastMessage.content.length > MAX_MESSAGE_LENGTH) {
+    return NextResponse.json(
+      { error: `Message too long (max ${MAX_MESSAGE_LENGTH} characters).` },
       { status: 400 }
     )
   }
@@ -340,11 +428,25 @@ export async function POST(request: Request): Promise<Response> {
     )
   }
 
+  // 4a. Clean up stale pending confirmations
+  const stalePending = findPendingConfirmation(storedMessages)
+  if (stalePending?.createdAt) {
+    const age = Date.now() - new Date(stalePending.createdAt).getTime()
+    if (age > PENDING_CONFIRMATION_TTL_MS) {
+      // Auto-cancel stale confirmation
+      const cleaned = storedMessages.filter(
+        (m) => !m.content?.startsWith('__pending_confirmation:')
+      )
+      try { await saveMessages(conversationId, cleaned) } catch { /* best effort */ }
+    }
+  }
+
   // 5. Build system prompt
   const systemPrompt = await buildContextForPrompt(
     adminId,
     body.context.currentView,
-    body.context.currentViewData
+    body.context.currentViewData,
+    body.context.dismissedSuggestions
   )
 
   // 6. Append user message
@@ -419,7 +521,9 @@ export async function POST(request: Request): Promise<Response> {
               content: assistantContent,
               timestamp: new Date().toISOString(),
             }
-            await saveMessages(conversationId, [...allMessages, assistantMsg])
+            try {
+              await saveMessages(conversationId, [...allMessages, assistantMsg])
+            } catch { /* non-critical for text-only responses */ }
 
             controller.enqueue(encoder.encode(sseEncode({ type: 'done' })))
             controller.close()
@@ -443,37 +547,96 @@ export async function POST(request: Request): Promise<Response> {
             }
             newMessages.push(assistantMsg)
 
-            // Check each tool call for mutations vs reads
+            // Separate reads from mutations — process all reads first
+            type ParsedToolCall = { tc: typeof assistantToolCalls[0]; toolName: AgentToolName; args: Record<string, unknown> }
+            const reads: ParsedToolCall[] = []
+            const mutations: ParsedToolCall[] = []
+            const parseErrors: typeof assistantToolCalls[0][] = []
+
             for (const tc of assistantToolCalls) {
               const toolName = tc.name as AgentToolName
-              let parsedArgs: Record<string, unknown> = {}
               try {
-                parsedArgs = JSON.parse(tc.arguments)
-              } catch {
-                const errorResult: FunctionResult = {
-                  success: false,
-                  error: `Invalid JSON arguments for ${toolName}`,
-                  view: 'dashboard',
+                const args = JSON.parse(tc.arguments) as Record<string, unknown>
+                if (MUTATION_TOOLS.has(toolName)) {
+                  mutations.push({ tc, toolName, args })
+                } else {
+                  reads.push({ tc, toolName, args })
                 }
-                newMessages.push({
-                  role: 'tool',
-                  content: JSON.stringify(errorResult),
-                  tool_call_id: tc.id,
-                  timestamp: new Date().toISOString(),
-                })
-                controller.enqueue(
-                  encoder.encode(
-                    sseEncode({
-                      type: 'function_call_result',
-                      name: toolName,
-                      result: errorResult,
-                    })
-                  )
+              } catch {
+                parseErrors.push(tc)
+              }
+            }
+
+            // Handle parse errors
+            for (const tc of parseErrors) {
+              const toolName = tc.name as AgentToolName
+              const errorResult: FunctionResult = {
+                success: false,
+                error: `Invalid JSON arguments for ${toolName}`,
+                view: 'dashboard',
+              }
+              newMessages.push({
+                role: 'tool',
+                content: JSON.stringify(errorResult),
+                tool_call_id: tc.id,
+                timestamp: new Date().toISOString(),
+              })
+              controller.enqueue(
+                encoder.encode(
+                  sseEncode({ type: 'function_call_result', name: toolName, result: errorResult })
                 )
-                continue
+              )
+            }
+
+            // Execute all read tools first
+            for (const { tc, toolName, args: parsedArgs } of reads) {
+              controller.enqueue(
+                encoder.encode(
+                  sseEncode({ type: 'function_call_start', name: toolName, arguments: parsedArgs })
+                )
+              )
+
+              const startTime = Date.now()
+              const result = await executeFunction(toolName, parsedArgs, request.headers)
+              const latencyMs = Date.now() - startTime
+
+              logFunctionCall({
+                conversation_id: conversationId,
+                account_id: adminId,
+                tool_name: toolName,
+                parameters: parsedArgs,
+                result: result.success ? (result.data ?? {}) : undefined,
+                error: result.error,
+                latency_ms: latencyMs,
+              })
+
+              if (result.success) {
+                clearFailures(adminId, toolName)
               }
 
-              // Mutation tools require confirmation
+              const sseResult: SSEEvent = { type: 'function_call_result', name: toolName, result }
+
+              if (!result.success) {
+                const attempts = trackFailure(adminId, toolName)
+                sseResult.failedAttempts = attempts
+                if (attempts >= 2) {
+                  sseResult.suggestedActions = getSuggestedActions(toolName)
+                }
+              }
+
+              controller.enqueue(encoder.encode(sseEncode(sseResult)))
+
+              newMessages.push({
+                role: 'tool',
+                content: JSON.stringify(result),
+                tool_call_id: tc.id,
+                timestamp: new Date().toISOString(),
+              })
+            }
+
+            // Then handle the first mutation (if any) — requires confirmation
+            if (mutations.length > 0) {
+              const { tc, toolName, args: parsedArgs } = mutations[0]
               if (MUTATION_TOOLS.has(toolName)) {
                 const preview = buildPreview(toolName, parsedArgs)
                 const viewMap: Record<string, { view: string; viewData?: Record<string, string> }> = {
@@ -493,6 +656,7 @@ export async function POST(request: Request): Promise<Response> {
                   preview,
                   view: routing.view as PendingConfirmation['view'],
                   viewData: routing.viewData,
+                  createdAt: new Date().toISOString(),
                 }
 
                 const pendingMsg = storePendingConfirmation(pending)
@@ -515,72 +679,25 @@ export async function POST(request: Request): Promise<Response> {
                 controller.close()
                 return
               }
-
-              // Read tools: execute immediately
-              controller.enqueue(
-                encoder.encode(
-                  sseEncode({
-                    type: 'function_call_start',
-                    name: toolName,
-                    arguments: parsedArgs,
-                  })
-                )
-              )
-
-              const startTime = Date.now()
-              const result = await executeFunction(
-                toolName,
-                parsedArgs,
-                request.headers
-              )
-              const latencyMs = Date.now() - startTime
-
-              logFunctionCall({
-                conversation_id: conversationId,
-                account_id: adminId,
-                tool_name: toolName,
-                parameters: parsedArgs,
-                result: result.success ? (result.data ?? {}) : undefined,
-                error: result.error,
-                latency_ms: latencyMs,
-              })
-
-              if (result.success) {
-                clearFailures(adminId, toolName)
-              }
-
-              const sseResult: SSEEvent = {
-                type: 'function_call_result',
-                name: toolName,
-                result,
-              }
-
-              if (!result.success) {
-                const attempts = trackFailure(adminId, toolName)
-                sseResult.failedAttempts = attempts
-                if (attempts >= 2) {
-                  sseResult.suggestedActions = getSuggestedActions(toolName)
-                }
-              }
-
-              controller.enqueue(encoder.encode(sseEncode(sseResult)))
-
-              newMessages.push({
-                role: 'tool',
-                content: JSON.stringify(result),
-                tool_call_id: tc.id,
-                timestamp: new Date().toISOString(),
-              })
             }
 
             // After executing read tools, send results back to the model for a follow-up
-            await saveMessages(conversationId, newMessages)
+            // Use tool_choice: 'none' to prevent chaining — keeps MVP simple
+            try {
+              await saveMessages(conversationId, newMessages)
+            } catch (saveErr) {
+              controller.enqueue(encoder.encode(sseEncode({
+                type: 'error',
+                error: 'Warning: conversation may not persist.',
+              })))
+            }
             const followUpMessages = toOpenAIMessages(systemPrompt, newMessages)
 
             const followUp = await openai.chat.completions.create({
               model: 'gpt-4.1',
               messages: followUpMessages,
               tools: agentTools,
+              tool_choice: 'none',
               stream: true,
             })
 
@@ -604,7 +721,9 @@ export async function POST(request: Request): Promise<Response> {
                   content: followUpContent,
                   timestamp: new Date().toISOString(),
                 }
-                await saveMessages(conversationId, [...newMessages, followUpMsg])
+                try {
+                  await saveMessages(conversationId, [...newMessages, followUpMsg])
+                } catch { /* already warned */ }
                 break
               }
             }
@@ -619,12 +738,18 @@ export async function POST(request: Request): Promise<Response> {
         controller.enqueue(encoder.encode(sseEncode({ type: 'done' })))
         controller.close()
       } catch (err) {
-        const message =
+        const rawMessage =
           err instanceof Error ? err.message : 'An unexpected error occurred'
-        console.error('[agent/chat] Stream error:', message)
+        console.error('[agent/chat] Stream error:', rawMessage)
+        // Redact internal details (OpenAI key errors, model names, rate limit details)
+        const userMessage = rawMessage.includes('API key')
+          ? 'AI service temporarily unavailable. Please try again later.'
+          : rawMessage.includes('Rate limit') || rawMessage.includes('429')
+          ? 'The AI service is busy. Please try again in a moment.'
+          : 'Something went wrong. Please try again.'
         try {
           controller.enqueue(
-            encoder.encode(sseEncode({ type: 'error', error: message }))
+            encoder.encode(sseEncode({ type: 'error', error: userMessage }))
           )
           controller.enqueue(encoder.encode(sseEncode({ type: 'done' })))
           controller.close()
@@ -663,6 +788,17 @@ async function handleConfirmation(
       { error: 'No matching pending confirmation found.' },
       { status: 400 }
     )
+  }
+
+  // Reject stale confirmations
+  if (pending.createdAt) {
+    const age = Date.now() - new Date(pending.createdAt).getTime()
+    if (age > PENDING_CONFIRMATION_TTL_MS) {
+      return NextResponse.json(
+        { error: 'This confirmation has expired. Please try the action again.' },
+        { status: 400 }
+      )
+    }
   }
 
   const encoder = new TextEncoder()
@@ -776,6 +912,7 @@ async function handleConfirmation(
           model: 'gpt-4.1',
           messages: openaiMessages,
           tools: agentTools,
+          tool_choice: 'none',
           stream: true,
         })
 
@@ -799,7 +936,9 @@ async function handleConfirmation(
               content: followUpContent,
               timestamp: new Date().toISOString(),
             }
-            await saveMessages(conversationId, [...updatedMessages, followUpMsg])
+            try {
+              await saveMessages(conversationId, [...updatedMessages, followUpMsg])
+            } catch { /* non-critical */ }
             break
           }
         }
@@ -807,12 +946,15 @@ async function handleConfirmation(
         controller.enqueue(encoder.encode(sseEncode({ type: 'done' })))
         controller.close()
       } catch (err) {
-        const message =
+        const rawMessage =
           err instanceof Error ? err.message : 'An unexpected error occurred'
-        console.error('[agent/chat] Confirmation error:', message)
+        console.error('[agent/chat] Confirmation error:', rawMessage)
+        const userMessage = rawMessage.includes('API key')
+          ? 'AI service temporarily unavailable.'
+          : 'Something went wrong. Please try again.'
         try {
           controller.enqueue(
-            encoder.encode(sseEncode({ type: 'error', error: message }))
+            encoder.encode(sseEncode({ type: 'error', error: userMessage }))
           )
           controller.enqueue(encoder.encode(sseEncode({ type: 'done' })))
           controller.close()

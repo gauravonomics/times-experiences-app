@@ -3,12 +3,13 @@ import type { ViewType } from '@/components/admin/view-router'
 export type { ViewType }
 export type { ViewTarget } from '@/components/admin/view-router'
 
-// The 11 agent tools
+// The 12 agent tools
 export type AgentToolName =
   | 'create_event'
   | 'update_event'
   | 'list_events'
   | 'get_event_details'
+  | 'list_rsvps'
   | 'manage_rsvps'
   | 'duplicate_event'
   | 'create_template'
@@ -29,6 +30,7 @@ export const MUTATION_TOOLS: Set<AgentToolName> = new Set([
 export const READ_TOOLS: Set<AgentToolName> = new Set([
   'list_events',
   'get_event_details',
+  'list_rsvps',
   'apply_template',
   'export_rsvps',
   'get_analytics',
@@ -72,6 +74,7 @@ export interface ChatRequest {
   context: {
     currentView: ViewType
     currentViewData?: Record<string, string>
+    dismissedSuggestions?: string[]
   }
   confirmAction?: {
     toolCallId: string
@@ -100,6 +103,7 @@ export interface PendingConfirmation {
   preview: Record<string, unknown>
   view: ViewType
   viewData?: Record<string, string>
+  createdAt: string
 }
 
 /** Function call log entry for the logging table */

@@ -4,6 +4,7 @@ interface SystemPromptContext {
   upcomingEvents: Array<{
     id: string
     title: string
+    type: string
     date: string
     brand: string
     status: string
@@ -30,13 +31,29 @@ const VIEW_LABELS: Record<ViewType, string> = {
   'brand-list': 'Brands',
 }
 
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+    })
+  } catch {
+    return iso
+  }
+}
+
 function formatEventTable(
   events: SystemPromptContext['upcomingEvents']
 ): string {
   if (events.length === 0) return 'No upcoming events.'
   const rows = events.map((e) => {
     const cap = e.capacity ? `${e.rsvpCount}/${e.capacity}` : `${e.rsvpCount}`
-    return `- ${e.title} | ${e.date} | ${e.brand} | ${e.city} | ${e.status} | RSVPs: ${cap} | id:${e.id}`
+    return `- ${e.title} | ${e.type} | ${formatDate(e.date)} | ${e.brand} | ${e.city} | ${e.status} | Confirmed: ${cap} | id:${e.id}`
   })
   return rows.join('\n')
 }
@@ -91,12 +108,13 @@ Today is ${today}.
 3. **list_events** — List events with filters (brand, type, city, status)
 4. **get_event_details** — Full details + RSVP counts for one event
 5. **duplicate_event** — Copy an event with a new date
-6. **manage_rsvps** — Confirm, waitlist, cancel, or check in a single RSVP
-7. **export_rsvps** — Download the full guest list as CSV
-8. **create_template** — Save reusable event defaults
-9. **apply_template** — Load template defaults into event creation form
-10. **manage_brands** — Create, update, or delete a brand
-11. **get_analytics** — Aggregate stats, trends, and attendance data
+6. **list_rsvps** — List individual RSVPs for an event (names, emails, statuses)
+7. **manage_rsvps** — Confirm, waitlist, cancel, or check in a single RSVP
+8. **export_rsvps** — Download the full guest list as CSV
+9. **create_template** — Save reusable event defaults
+10. **apply_template** — Load template defaults into event creation form
+11. **manage_brands** — Create, update, or delete a brand
+12. **get_analytics** — Aggregate stats, trends, and attendance data
 
 ## Upcoming Events
 
@@ -125,6 +143,9 @@ You are viewing: ${formatViewContext(ctx.currentView, ctx.currentViewData)}
 - When showing event details, always include RSVP counts and remaining capacity (e.g., "42/60 RSVPs — 18 spots remaining").
 - When the user says "create a supper club" or similar without specifying a brand, use their primary brand: ${ctx.primaryBrand}.
 - Don't ask clarifying questions when you can resolve from context. If the admin says "publish it", publish the event in the current view.
+- When multiple events match a reference (e.g., two events on Saturday), list the matches and ask the admin to choose. Never guess.
+- "the supper club" or "the roundtable" → resolve to the nearest-future event of that type.
+- "the last Bangalore roundtable" → most recent past event matching city=Bangalore and the roundtable type.
 
 ## Guided Workflows
 
@@ -146,5 +167,7 @@ Then provide suggestedActions so the UI can render action buttons.
 
 ## Response Format
 
-Keep responses short and action-oriented. Use bold for event titles and key numbers. Use line breaks between distinct pieces of information. Do not use headers or bullet lists for simple responses — save those for multi-item results like event lists or analytics summaries.`
+Keep responses short and action-oriented. Use bold for event titles and key numbers. Use line breaks between distinct pieces of information. Do not use headers or bullet lists for simple responses — save those for multi-item results like event lists or analytics summaries.
+
+When you receive tool results, parse the JSON and present data conversationally. Never show raw JSON, UUIDs, or internal field names to the user. For event lists, show a numbered list with title, date, city, and RSVP counts. For single events, show key details formatted with bold labels. For RSVP lists, show a compact table with name, status, and check-in state.`
 }

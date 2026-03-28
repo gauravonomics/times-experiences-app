@@ -21,14 +21,21 @@ async function apiFetch(
   cookie: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  return fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      cookie,
-      ...(init.headers as Record<string, string> | undefined),
-    },
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        cookie,
+        ...(init.headers as Record<string, string> | undefined),
+      },
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function buildResult(
@@ -88,7 +95,11 @@ const updateEvent: ToolHandler = async (args, baseUrl, cookie) => {
 const listEvents: ToolHandler = async (args, baseUrl, cookie) => {
   const params = new URLSearchParams()
   for (const [key, val] of Object.entries(args)) {
-    if (val !== undefined && val !== null) params.set(key, String(val))
+    if (val !== undefined && val !== null) {
+      // Map function def param names to API query param names
+      const apiKey = key === 'brand_id' ? 'brand' : key
+      params.set(apiKey, String(val))
+    }
   }
   const qs = params.toString()
   const res = await apiFetch(
@@ -137,6 +148,21 @@ const manageRsvps: ToolHandler = async (args, baseUrl, cookie) => {
     result.viewData = { eventId: rsvp.event_id as string }
   }
   return result
+}
+
+const listRsvps: ToolHandler = async (args, baseUrl, cookie) => {
+  const { event_id, ...params } = args as { event_id: string; [k: string]: unknown }
+  const qs = new URLSearchParams()
+  for (const [key, val] of Object.entries(params)) {
+    if (val !== undefined && val !== null) qs.set(key, String(val))
+  }
+  const query = qs.toString()
+  const res = await apiFetch(
+    `${baseUrl}/api/admin/events/${event_id}/rsvps${query ? `?${query}` : ''}`,
+    cookie,
+    { method: 'GET' }
+  )
+  return parseJsonResponse(res, 'rsvp-list', { eventId: event_id })
 }
 
 const duplicateEvent: ToolHandler = async (args, baseUrl, cookie) => {
@@ -231,9 +257,9 @@ const exportRsvps: ToolHandler = async (args, baseUrl, cookie) => {
     })
   }
 
-  const downloadUrl = `${baseUrl}/api/admin/events/${eventId}/rsvps/export`
+  const csvContent = await res.text()
   return buildResult(true, 'rsvp-list', {
-    data: { downloadUrl, format: 'csv' },
+    data: { csvContent, downloadUrl: `/api/admin/events/${eventId}/rsvps/export`, format: 'csv' },
     viewData: { eventId },
   })
 }
@@ -241,7 +267,11 @@ const exportRsvps: ToolHandler = async (args, baseUrl, cookie) => {
 const getAnalytics: ToolHandler = async (args, baseUrl, cookie) => {
   const params = new URLSearchParams()
   for (const [key, val] of Object.entries(args)) {
-    if (val !== undefined && val !== null) params.set(key, String(val))
+    if (val !== undefined && val !== null) {
+      // Map function def param names to API query param names
+      const apiKey = key === 'brand_id' ? 'brand' : key
+      params.set(apiKey, String(val))
+    }
   }
   const qs = params.toString()
   const res = await apiFetch(
@@ -261,6 +291,7 @@ const handlers: Record<AgentToolName, ToolHandler> = {
   update_event: updateEvent,
   list_events: listEvents,
   get_event_details: getEventDetails,
+  list_rsvps: listRsvps,
   manage_rsvps: manageRsvps,
   duplicate_event: duplicateEvent,
   create_template: createTemplate,

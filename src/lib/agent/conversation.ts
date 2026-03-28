@@ -6,7 +6,7 @@ const STALE_HOURS = 24
 
 export async function getOrCreateConversation(
   accountId: string
-): Promise<{ id: string; messages: StoredMessage[] }> {
+): Promise<{ id: string; messages: StoredMessage[]; updatedAt: string }> {
   const supabase = createServiceClient()
 
   const { data: existing } = await supabase
@@ -24,6 +24,7 @@ export async function getOrCreateConversation(
       return {
         id: existing.id,
         messages: (existing.messages ?? []) as unknown as StoredMessage[],
+        updatedAt: existing.updated_at,
       }
     }
   }
@@ -31,14 +32,14 @@ export async function getOrCreateConversation(
   const { data: created, error } = await supabase
     .from('agent_conversations')
     .insert({ account_id: accountId, messages: [] })
-    .select('id')
+    .select('id, updated_at')
     .single()
 
   if (error || !created) {
     throw new Error(`Failed to create conversation: ${error?.message}`)
   }
 
-  return { id: created.id, messages: [] }
+  return { id: created.id, messages: [], updatedAt: created.updated_at }
 }
 
 export async function saveMessages(
@@ -57,11 +58,25 @@ export async function saveMessages(
     .eq('id', conversationId)
 
   if (error) {
-    console.error('[agent/conversation] Failed to save messages:', error.message)
+    throw new Error(`Failed to save conversation: ${error.message}`)
   }
 }
 
 export function applyRollingWindow(messages: StoredMessage[]): StoredMessage[] {
   if (messages.length <= CONVERSATION_WINDOW_SIZE) return messages
-  return messages.slice(-CONVERSATION_WINDOW_SIZE)
+
+  // Find a safe truncation point: always start on a 'user' message to avoid
+  // splitting assistant tool_call + tool result pairs.
+  const targetStart = messages.length - CONVERSATION_WINDOW_SIZE
+  let safeStart = targetStart
+
+  // Walk forward from target to find the next 'user' message boundary
+  for (let i = targetStart; i < messages.length; i++) {
+    if (messages[i].role === 'user') {
+      safeStart = i
+      break
+    }
+  }
+
+  return messages.slice(safeStart)
 }

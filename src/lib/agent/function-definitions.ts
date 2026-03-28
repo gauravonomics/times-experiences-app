@@ -94,7 +94,10 @@ const updateEvent: ChatCompletionTool = {
           description: 'UUID of the event to update.',
         },
         title: { type: 'string' },
-        brand_id: { type: 'string' },
+        brand_id: {
+          type: 'string',
+          description: 'UUID of the brand to assign this event to.',
+        },
         type: { type: 'string' },
         description: { type: 'string' },
         date: {
@@ -135,9 +138,9 @@ const listEvents: ChatCompletionTool = {
     parameters: {
       type: 'object',
       properties: {
-        brand: {
+        brand_id: {
           type: 'string',
-          description: 'Filter by brand slug, e.g. "times-prime", "et-edge".',
+          description: 'UUID of the brand to filter by. Get brand IDs from the system context.',
         },
         type: {
           type: 'string',
@@ -155,12 +158,12 @@ const listEvents: ChatCompletionTool = {
         sort: {
           type: 'string',
           enum: ['date', 'title', 'created_at'],
-          description: 'Sort field. Defaults to "date".',
+          description: 'Sort field. Defaults to "created_at".',
         },
         order: {
           type: 'string',
           enum: ['asc', 'desc'],
-          description: 'Sort direction. Defaults to "asc".',
+          description: 'Sort direction. Defaults to "desc".',
         },
       },
       required: [],
@@ -192,7 +195,7 @@ const duplicateEvent: ChatCompletionTool = {
   function: {
     name: 'duplicate_event',
     description:
-      'Duplicate an existing event to create a copy with a new date. Copies all fields except status (set to "draft") and date. Use when the admin wants to repeat an event or create a similar one in another city.',
+      'Duplicate an existing event. Copies all fields, generates a new slug, and sets status to "draft". Optionally override the date and end_date for the new copy — if omitted, the original dates are kept. Use when the admin wants to repeat an event or create a similar one in another city.',
     parameters: {
       type: 'object',
       properties: {
@@ -238,6 +241,42 @@ const manageRsvps: ChatCompletionTool = {
         },
       },
       required: ['rsvp_id', 'action'],
+    },
+  },
+}
+
+const listRsvps: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'list_rsvps',
+    description: 'List individual RSVPs for a specific event with name, email, phone, status, and check-in state. Use this when the admin asks "who RSVPed", "show me the guest list", "who is on the waitlist", or needs to find a specific RSVP by name or email before managing it. Returns paginated results. For aggregate RSVP counts only (without individual details), use get_event_details instead.',
+    parameters: {
+      type: 'object',
+      properties: {
+        event_id: {
+          type: 'string',
+          description: 'UUID of the event to list RSVPs for.',
+        },
+        page: {
+          type: 'integer',
+          description: 'Page number for pagination. Defaults to 1.',
+        },
+        per_page: {
+          type: 'integer',
+          description: 'Results per page (max 100). Defaults to 50.',
+        },
+        sort: {
+          type: 'string',
+          enum: ['name', 'email', 'status', 'checked_in', 'created_at'],
+          description: 'Sort field. Defaults to "created_at".',
+        },
+        order: {
+          type: 'string',
+          enum: ['asc', 'desc'],
+          description: 'Sort direction. Defaults to "desc".',
+        },
+      },
+      required: ['event_id'],
     },
   },
 }
@@ -339,15 +378,15 @@ const manageBrands: ChatCompletionTool = {
         },
         brand_id: {
           type: 'string',
-          description: 'UUID of the brand. Required for update and delete.',
+          description: 'UUID of the brand. REQUIRED for update and delete — the call will fail without it.',
         },
         name: {
           type: 'string',
-          description: 'Brand display name. Required for create.',
+          description: 'Brand display name. REQUIRED for create — the call will fail without it.',
         },
         slug: {
           type: 'string',
-          description: 'URL-safe slug. Required for create. Must be lowercase with hyphens.',
+          description: 'URL-safe slug. Auto-generated from name if omitted on create. Must be lowercase with hyphens.',
         },
         logo_url: {
           type: 'string',
@@ -378,13 +417,13 @@ const getAnalytics: ChatCompletionTool = {
       properties: {
         from: {
           type: 'string',
-          description: 'Start date in ISO 8601 format (YYYY-MM-DD). Defaults to 90 days ago.',
+          description: 'Start date in ISO 8601 format (YYYY-MM-DD). Defaults to the 1st of the current month.',
         },
         to: {
           type: 'string',
           description: 'End date in ISO 8601 format (YYYY-MM-DD). Defaults to today.',
         },
-        brand: {
+        brand_id: {
           type: 'string',
           description: 'UUID of a brand to filter analytics to. Omit for all brands.',
         },
@@ -407,6 +446,7 @@ export const agentTools: ChatCompletionTool[] = [
   duplicateEvent,
   // RSVPs
   manageRsvps,
+  listRsvps,
   exportRsvps,
   // Templates
   createTemplate,

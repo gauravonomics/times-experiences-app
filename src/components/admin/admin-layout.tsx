@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { TopNav } from '@/components/admin/top-nav'
 import { ContextPanel } from '@/components/admin/context-panel'
 import { ChatDrawer } from '@/components/admin/chat-drawer'
+import { Toaster } from '@/components/ui/sonner'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -43,6 +44,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         {drawerOpen && <ChatDrawer onClose={() => setDrawerOpen(false)} />}
       </div>
+      <Toaster />
     </div>
   )
 }

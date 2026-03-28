@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { Plus } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { fetcher } from '@/lib/admin/fetcher'
 import type { EventListResponse, EventWithBrand } from '@/lib/admin/types'
 import { ViewHeader } from '@/components/admin/view-header'
@@ -141,8 +142,10 @@ export default function EventsPage() {
     return (
       <div>
         <ViewHeader title="Events" description="Manage all your events." />
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
-          Loading events...
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-md" />
+          ))}
         </div>
       </div>
     )

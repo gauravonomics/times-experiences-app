@@ -111,6 +111,30 @@ export function ChatDrawer({
       })
   }, [historyLoaded, loadHistory])
 
+  // ----- Focus textarea on mount -----
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // ----- Escape key to close drawer -----
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // Only close if textarea is empty or not focused
+        const textarea = textareaRef.current
+        const isTextareaFocused = document.activeElement === textarea
+        if (!isTextareaFocused || !input.trim()) {
+          onClose()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [input, onClose])
+
   // ----- Fix 7: Stagger onboarding messages -----
   const canShowOnboarding =
     showOnboarding && messages.length === 0 && !isStreaming && !isHistoryError
@@ -247,6 +271,7 @@ export function ChatDrawer({
           size="icon"
           onClick={onClose}
           className="h-8 w-8"
+          aria-label="Close chat drawer"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -259,6 +284,9 @@ export function ChatDrawer({
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-3 py-3"
         onScroll={handleScroll}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
       >
         {/* Fix 10: History load error */}
         {isHistoryError && messages.length === 0 && (
@@ -352,6 +380,7 @@ export function ChatDrawer({
           onClick={handleSend}
           disabled={!input.trim() || isStreaming || input.length > MAX_LENGTH}
           className="h-9 w-9 shrink-0"
+          aria-label="Send message"
         >
           <Send className="h-4 w-4" />
         </Button>

@@ -106,7 +106,7 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble({
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
           {isStreaming && (
-            <span className="inline-block h-3 w-1 animate-pulse bg-foreground/60 align-middle" />
+            <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-[blink_1s_step-end_infinite] bg-foreground/70 align-middle" />
           )}
         </div>
 

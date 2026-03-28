@@ -22,13 +22,13 @@ export function ContextPanel({ children }: ContextPanelProps) {
   }, [pathname])
 
   return (
-    <div className="flex flex-col overflow-hidden">
+    <main className="flex min-w-0 flex-col overflow-hidden">
       <div
         className="flex-1 overflow-y-auto p-6 transition-opacity duration-200"
         style={{ opacity: visible ? 1 : 0 }}
       >
         {children}
       </div>
-    </div>
+    </main>
   )
 }

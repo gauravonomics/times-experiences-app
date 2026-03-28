@@ -105,9 +105,9 @@ export function ConfirmationCard({
     .filter((e): e is { label: string; value: string } => e.value !== null)
 
   return (
-    <Card className="border-amber-300 bg-amber-50/50 ring-amber-200/60 dark:border-amber-700 dark:bg-amber-950/30 dark:ring-amber-800/40">
+    <Card role="alertdialog" aria-label={`Confirm: ${toolNameToTitle(toolName)}`} className="border-amber-300 bg-amber-50/50 ring-amber-200/60 dark:border-amber-700 dark:bg-amber-950/30 dark:ring-amber-800/40">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+        <CardTitle className="text-sm font-semibold text-amber-900 dark:text-amber-100">
           Confirm: {toolNameToTitle(toolName)}
         </CardTitle>
       </CardHeader>

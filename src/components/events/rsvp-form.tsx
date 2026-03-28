@@ -267,7 +267,7 @@ export function RsvpForm({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-3 text-destructive hover:text-destructive"
+                  className="mt-3 min-h-[44px] text-destructive hover:text-destructive"
                   onClick={handleCancel}
                   disabled={cancelling}
                 >

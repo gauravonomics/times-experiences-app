@@ -13,8 +13,8 @@ export default function EventLoading() {
           <Skeleton className="mb-4 h-5 w-24 rounded-full" />
 
           {/* Title */}
-          <Skeleton className="h-9 w-3/4" />
-          <Skeleton className="mt-2 h-9 w-1/2" />
+          <Skeleton className="h-7 w-3/4 sm:h-9" />
+          <Skeleton className="mt-2 h-7 w-1/2 sm:h-9" />
 
           {/* Date / Time / Venue */}
           <div className="mt-6 space-y-3">
@@ -52,13 +52,13 @@ export default function EventLoading() {
           <div className="mt-4 space-y-4">
             <div>
               <Skeleton className="mb-1.5 h-4 w-16" />
-              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             </div>
             <div>
               <Skeleton className="mb-1.5 h-4 w-16" />
-              <Skeleton className="h-8 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             </div>
-            <Skeleton className="h-8 w-full rounded-lg" />
+            <Skeleton className="h-11 w-full rounded-lg" />
           </div>
         </div>
       </div>

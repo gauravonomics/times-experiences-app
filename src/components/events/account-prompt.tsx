@@ -69,7 +69,7 @@ export function AccountPrompt({ email, name }: AccountPromptProps) {
       <button
         type="button"
         onClick={() => setStatus('dismissed')}
-        className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="mt-2 min-h-[44px] text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         No thanks
       </button>

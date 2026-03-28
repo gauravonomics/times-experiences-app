@@ -57,7 +57,7 @@ export function TopNav({ drawerOpen, onToggleDrawer }: TopNavProps) {
 
       <Separator orientation="vertical" className="mr-4 h-6" />
 
-      <nav className="flex items-center gap-1">
+      <nav aria-label="Admin navigation" className="flex items-center gap-1">
         {navItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href)

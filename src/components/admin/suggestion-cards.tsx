@@ -50,15 +50,28 @@ export function SuggestionCards({ onSuggestionClick }: SuggestionCardsProps) {
     )
   }
 
-  // Error or no data — render nothing
+  // Error or no data
   if (error || !data?.suggestions?.length) {
-    return <></>
+    return (
+      <div className="rounded-lg border border-dashed border-border py-8 text-center">
+        <Sparkles className="mx-auto h-5 w-5 text-muted-foreground/50" />
+        <p className="mt-2 text-sm text-muted-foreground">
+          No suggestions right now. Check back after creating events.
+        </p>
+      </div>
+    )
   }
 
   const visible = data.suggestions.filter((s) => !dismissed.has(s.id))
 
   if (visible.length === 0) {
-    return <></>
+    return (
+      <div className="rounded-lg border border-dashed border-border py-8 text-center">
+        <p className="text-sm text-muted-foreground">
+          All suggestions dismissed. New ones will appear as events progress.
+        </p>
+      </div>
+    )
   }
 
   return (

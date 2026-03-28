@@ -107,7 +107,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div
         className="grid flex-1 overflow-hidden transition-[grid-template-columns] duration-200"
         style={{
-          gridTemplateColumns: mounted && drawerOpen ? '1fr 400px' : '1fr',
+          gridTemplateColumns: mounted && drawerOpen ? 'minmax(500px, 1fr) 400px' : '1fr',
         }}
       >
         <ContextPanel>{children}</ContextPanel>

@@ -79,7 +79,7 @@ function LoginForm() {
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full h-11" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
@@ -90,10 +90,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <Suspense>
         <LoginForm />
       </Suspense>
-    </div>
+    </main>
   )
 }

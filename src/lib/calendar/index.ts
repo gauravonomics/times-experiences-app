@@ -34,7 +34,7 @@ export function generateGoogleCalendarUrl(event: CalendarEvent): string {
     ? new Date(event.end_date)
     : new Date(start.getTime() + 2 * 60 * 60 * 1000) // default: +2 hours
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://times-experiences.com'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://experiences.timesgroup.com'
   const eventPageUrl = `${baseUrl}/events/${event.slug}`
 
   const details = event.description
@@ -65,7 +65,7 @@ export function generateIcsContent(event: CalendarEvent): string {
     ? new Date(event.end_date)
     : new Date(start.getTime() + 2 * 60 * 60 * 1000)
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://times-experiences.com'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://experiences.timesgroup.com'
   const eventPageUrl = `${baseUrl}/events/${event.slug}`
 
   const description = event.description

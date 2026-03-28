@@ -52,14 +52,21 @@ export default function EventLoading() {
           <div className="mt-4 space-y-4">
             <div>
               <Skeleton className="mb-1.5 h-4 w-16" />
-              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-11 w-full rounded-lg" />
             </div>
             <div>
               <Skeleton className="mb-1.5 h-4 w-16" />
-              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-11 w-full rounded-lg" />
+            </div>
+            <div>
+              <Skeleton className="mb-1.5 h-4 w-24" />
+              <Skeleton className="h-11 w-full rounded-lg" />
             </div>
             <Skeleton className="h-11 w-full rounded-lg" />
           </div>
+
+          {/* Capacity indicator */}
+          <Skeleton className="mt-6 h-4 w-48" />
         </div>
       </div>
     </main>

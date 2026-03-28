@@ -15,7 +15,7 @@ function isDev(): boolean {
 }
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || 'https://times-experiences.com'
+  return process.env.NEXT_PUBLIC_SITE_URL || 'https://experiences.timesgroup.com'
 }
 
 export async function sendRsvpConfirmation(params: {

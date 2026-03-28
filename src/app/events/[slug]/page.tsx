@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 import { Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -86,6 +87,11 @@ export async function generateMetadata({
         ? [{ url: metaEvent.cover_image_url, width: 1200, height: 630 }]
         : [],
     },
+    twitter: {
+      card: metaEvent.cover_image_url ? 'summary_large_image' : 'summary',
+      title: `${metaEvent.title} | Times Experiences`,
+      description,
+    },
   }
 }
 
@@ -129,9 +135,12 @@ export default async function PublicEventPage({
         {/* Cover Image */}
         {event.cover_image_url ? (
           <div className="aspect-video w-full overflow-hidden">
-            <img
+            <Image
               src={event.cover_image_url}
               alt={event.title}
+              width={800}
+              height={450}
+              sizes="(max-width: 672px) 100vw, 672px"
               className="h-full w-full object-cover"
             />
           </div>

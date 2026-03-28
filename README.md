@@ -12,6 +12,13 @@ BCCL's agent-native event management platform. Luma-style event pages with RSVP,
 
 ## Setup
 
+### 0. Clone the Repository
+
+```bash
+git clone https://github.com/gauravonomics/times-experiences-app.git
+cd times-experiences-app
+```
+
 ### 1. Environment Variables
 
 ```bash
@@ -37,7 +44,8 @@ supabase db push
 # Option B: Manual — paste these in the Supabase SQL Editor in order:
 # 1. supabase/migrations/001_initial_schema.sql
 # 2. supabase/migrations/002_rls_policies.sql
-# 3. supabase/seed.sql
+# 3. supabase/migrations/003_agent_function_logs.sql
+# 4. supabase/seed.sql
 ```
 
 ### 3. Create Admin User
@@ -87,9 +95,16 @@ supabase/
 
 ## Database Schema
 
-6 tables: `events`, `rsvps`, `brands`, `templates`, `accounts`, `agent_conversations`. See `supabase/migrations/001_initial_schema.sql` for full schema.
+7 tables: `events`, `rsvps`, `brands`, `templates`, `accounts`, `agent_conversations`, `function_call_logs`. See `supabase/migrations/` for full schema.
 
-RLS policies enforce: public reads published events, public creates RSVPs on published events, admin-only for everything else.
+RLS policies per table:
+- **`events`**: Anon can SELECT published events only. Authenticated non-admins also see published only; admins see all. Admin-only for insert/update/delete.
+- **`rsvps`**: Anon and authenticated can INSERT on published events. Authenticated users can SELECT their own RSVPs. Admin full access.
+- **`brands`**: Public read (anon + authenticated). Admin-only for insert/update/delete.
+- **`templates`**: Public read (anon + authenticated). Admin-only for insert/update/delete.
+- **`accounts`**: Users can read/update their own account. Self-registration allowed (attendee role only). Admins have full access. Role escalation prevented by trigger.
+- **`agent_conversations`**: Admins can read/write their own conversations. Admins can also read all conversations (oversight policy).
+- **`function_call_logs`**: Admin-only for read and insert.
 
 ## Testing
 
@@ -114,20 +129,24 @@ Tests live in `src/__tests__/`. The agent evaluation suite (`agent-eval.test.ts`
    npx supabase db push
    ```
 4. Verify RLS policies are active:
-   - `events`: Public read for published/cancelled events, admin write
-   - `rsvps`: Users can read own RSVPs, admin full access
-   - `brands`: Public read, admin write
-   - `templates`: Admin only
-   - `accounts`: Admin only
-   - `agent_conversations`: Owner read/write
-   - `function_call_logs`: Admin only
+   - `events`: Anon SELECT published only; authenticated non-admins published only; admins see all. Admin-only write.
+   - `rsvps`: Anon + authenticated INSERT on published events. Authenticated users SELECT own RSVPs. Admin full access.
+   - `brands`: Public read (anon + authenticated). Admin-only write.
+   - `templates`: Public read (anon + authenticated). Admin-only write.
+   - `accounts`: Users read/update own. Self-registration (attendee only). Admin full access. Role escalation prevented by trigger.
+   - `agent_conversations`: Admins read/write own. Admins can read all (oversight).
+   - `function_call_logs`: Admin-only read and insert.
 5. Create an admin user:
    ```sql
    -- In Supabase SQL Editor, after creating a user via Auth
    INSERT INTO accounts (id, email, name, role)
    VALUES ('user-uuid-from-auth', 'admin@example.com', 'Admin Name', 'admin');
    ```
-6. Set up Supabase Storage bucket `images` with public access for event cover images and brand logos
+6. Set up Supabase Storage for images:
+   1. Go to Supabase Dashboard > Storage
+   2. Create a bucket named `images`
+   3. Set it to public (toggle "Public bucket" on)
+   4. Verify the public URL format: `https://<project-ref>.supabase.co/storage/v1/object/public/images/<filename>`
 
 ### Vercel Deployment
 

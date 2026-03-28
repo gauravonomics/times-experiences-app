@@ -32,6 +32,7 @@ describe('Function definitions', () => {
   it('every tool has a name, description, and parameters schema', () => {
     for (const tool of agentTools) {
       expect(tool.type).toBe('function')
+      if (tool.type !== 'function') throw new Error('Expected function tool')
       expect(tool.function.name).toBeTruthy()
       expect(tool.function.description).toBeTruthy()
       expect(tool.function.parameters).toBeDefined()
@@ -54,7 +55,10 @@ describe('Function definitions', () => {
       'export_rsvps',
       'get_analytics',
     ]
-    const toolNames = agentTools.map((t) => t.function.name)
+    const toolNames = agentTools.map((t) => {
+      if (t.type !== 'function') throw new Error('Expected function tool')
+      return t.function.name
+    })
     expect(new Set(toolNames)).toEqual(new Set(expectedNames))
   })
 })

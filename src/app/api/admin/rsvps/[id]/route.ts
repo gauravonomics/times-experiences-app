@@ -34,9 +34,16 @@ export async function PATCH(
   }
 
   // Build update payload
+  const VALID_STATUSES = new Set(['confirmed', 'waitlisted', 'cancelled'])
   const updates: Record<string, unknown> = {}
 
   if (body.status !== undefined) {
+    if (!VALID_STATUSES.has(body.status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${[...VALID_STATUSES].join(', ')}` },
+        { status: 400 }
+      )
+    }
     updates.status = body.status
   }
 

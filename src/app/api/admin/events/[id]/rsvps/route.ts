@@ -6,6 +6,10 @@ import { createServiceClient } from '@/lib/supabase/service'
  * GET /api/admin/events/[id]/rsvps
  * List all RSVPs for an event with pagination and sorting.
  */
+const SORTABLE_COLUMNS = new Set([
+  'name', 'email', 'phone', 'status', 'checked_in', 'created_at',
+])
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,9 +21,29 @@ export async function GET(
   const supabase = createServiceClient()
   const url = request.nextUrl
 
-  const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10))
-  const perPage = Math.max(1, Math.min(100, parseInt(url.searchParams.get('per_page') ?? '50', 10)))
-  const sort = url.searchParams.get('sort') ?? 'created_at'
+  // Validate event exists
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('id')
+    .eq('id', id)
+    .single()
+
+  if (eventError || !event) {
+    return NextResponse.json(
+      { error: 'Event not found' },
+      { status: 404 }
+    )
+  }
+
+  // Parse and validate pagination params (NaN-safe)
+  const rawPage = parseInt(url.searchParams.get('page') ?? '1', 10)
+  const rawPerPage = parseInt(url.searchParams.get('per_page') ?? '50', 10)
+  const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1
+  const perPage = Number.isFinite(rawPerPage) ? Math.max(1, Math.min(100, rawPerPage)) : 50
+
+  // Validate sort column
+  const sortParam = url.searchParams.get('sort') ?? 'created_at'
+  const sort = SORTABLE_COLUMNS.has(sortParam) ? sortParam : 'created_at'
   const order = url.searchParams.get('order') === 'asc' ? true : false
 
   const from = (page - 1) * perPage

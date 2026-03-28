@@ -146,10 +146,12 @@ export default function AnalyticsPage() {
   const [to, setTo] = useState(toDateInputValue(now))
   const [brandId, setBrandId] = useState<string | null>(null)
 
-  // Build SWR key
+  const dateRangeInvalid = from > to
+
+  // Build SWR key — skip fetch when date range is invalid
   const params = new URLSearchParams({ from, to })
   if (brandId) params.set('brand', brandId)
-  const apiUrl = `/api/admin/analytics?${params.toString()}`
+  const apiUrl = dateRangeInvalid ? null : `/api/admin/analytics?${params.toString()}`
 
   const { data, isLoading } = useSWR<AnalyticsData>(apiUrl, fetcher)
   const { data: brandsData } = useSWR<BrandsResponse>(
@@ -209,6 +211,11 @@ export default function AnalyticsPage() {
             ))}
           </SelectContent>
         </Select>
+        {dateRangeInvalid && (
+          <p className="text-sm text-destructive">
+            End date must be after start date.
+          </p>
+        )}
       </div>
 
       {/* Summary counters */}
@@ -262,7 +269,11 @@ export default function AnalyticsPage() {
                   tick={{ fontSize: 12 }}
                   tickFormatter={(v: string) => truncate(v, 14)}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Events', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
                 <Tooltip />
                 <Bar dataKey="count" name="Events" radius={[4, 4, 0, 0]}>
                   {data.eventsByBrand.map((entry, idx) => (
@@ -298,7 +309,11 @@ export default function AnalyticsPage() {
                   tick={{ fontSize: 12 }}
                   tickFormatter={formatDateLabel}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'RSVPs', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
                 <Tooltip
                   labelFormatter={(label) =>
                     typeof label === 'string' ? formatDateLabel(label) : label
@@ -340,7 +355,11 @@ export default function AnalyticsPage() {
                   tick={{ fontSize: 12 }}
                   tickFormatter={(v: string) => truncate(v, 18)}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Attendees', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
                 <Tooltip />
                 <Legend />
                 <Bar

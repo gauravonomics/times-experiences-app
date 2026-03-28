@@ -16,6 +16,14 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get('to') || now.toISOString()
   const brandFilter = searchParams.get('brand') || null
 
+  // Validate date range
+  if (from > to) {
+    return NextResponse.json(
+      { error: 'Invalid date range: "from" must be before "to".' },
+      { status: 400 }
+    )
+  }
+
   const supabase = createServiceClient()
 
   // -----------------------------------------------------------------------

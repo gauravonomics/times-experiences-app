@@ -25,28 +25,36 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Protect admin and admin API routes — fail closed on any error
+  if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/api/admin')) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
+      if (!user) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.set('redirect', request.nextUrl.pathname)
+        return NextResponse.redirect(url)
+      }
+
+      // Check admin role
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!account || account.role !== 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.set('error', 'unauthorized')
+        return NextResponse.redirect(url)
+      }
+    } catch {
+      // Fail closed — any auth/db error redirects to login
       const url = request.nextUrl.clone()
       url.pathname = '/login'
-      url.searchParams.set('redirect', request.nextUrl.pathname)
-      return NextResponse.redirect(url)
-    }
-
-    // Check admin role
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!account || account.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      url.searchParams.set('error', 'unauthorized')
+      url.searchParams.set('error', 'auth_error')
       return NextResponse.redirect(url)
     }
   }
@@ -55,5 +63,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*'],
 }

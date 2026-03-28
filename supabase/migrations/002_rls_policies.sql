@@ -10,6 +10,7 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1
@@ -18,6 +19,33 @@ AS $$
       AND role = 'admin'
   );
 $$;
+
+-- =============================================================================
+-- ROLE ESCALATION PREVENTION
+-- =============================================================================
+
+-- Prevent non-admin users from changing the role column on accounts.
+-- Only admins (or service role) can modify roles. This closes the
+-- self-escalation vector where a user could UPDATE their own role to 'admin'.
+CREATE OR REPLACE FUNCTION public.prevent_role_self_escalation()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.role IS DISTINCT FROM NEW.role THEN
+    IF NOT public.is_admin() THEN
+      RAISE EXCEPTION 'Only admins can change account roles';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_role_change
+  BEFORE UPDATE ON public.accounts
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_role_self_escalation();
 
 -- =============================================================================
 -- ENABLE RLS ON ALL TABLES
@@ -122,6 +150,28 @@ CREATE POLICY "accounts_update_own"
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
 
+-- Admins can update any account (including role changes)
+CREATE POLICY "accounts_update_admin"
+  ON public.accounts
+  FOR UPDATE
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- Admins can insert accounts (for user management)
+CREATE POLICY "accounts_insert_admin"
+  ON public.accounts
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin());
+
+-- Allow new user self-registration (attendee role only)
+CREATE POLICY "accounts_insert_self"
+  ON public.accounts
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (id = auth.uid() AND role = 'attendee');
+
 -- =============================================================================
 -- EVENTS POLICIES
 -- =============================================================================
@@ -133,12 +183,12 @@ CREATE POLICY "events_select_public"
   TO anon
   USING (status = 'published');
 
--- Authenticated users can read all events (for admin panel)
+-- Authenticated users: admins see all events, non-admins see published only
 CREATE POLICY "events_select_authenticated"
   ON public.events
   FOR SELECT
   TO authenticated
-  USING (true);
+  USING (status = 'published' OR public.is_admin());
 
 -- Only admins can insert events
 CREATE POLICY "events_insert_admin"

@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Calendar,
   Plus,
-  Users,
   BarChart3,
   FileText,
   Palette,

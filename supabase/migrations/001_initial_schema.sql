@@ -95,9 +95,9 @@ CREATE TABLE public.agent_conversations (
 CREATE INDEX idx_events_brand_id ON public.events(brand_id);
 CREATE INDEX idx_events_status ON public.events(status);
 CREATE INDEX idx_events_date ON public.events(date);
-CREATE INDEX idx_events_slug ON public.events(slug);
 CREATE INDEX idx_rsvps_event_id ON public.rsvps(event_id);
 CREATE INDEX idx_rsvps_email ON public.rsvps(email);
+CREATE INDEX idx_rsvps_account_id ON public.rsvps(account_id);
 CREATE INDEX idx_agent_conversations_account_id ON public.agent_conversations(account_id);
 
 -- =============================================================================

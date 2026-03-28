@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/admin'
+  const rawRedirect = searchParams.get('redirect') || '/admin'
+  // Prevent open redirect — only allow relative paths starting with /
+  const redirect = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/admin'
   const errorParam = searchParams.get('error')
 
   const [email, setEmail] = useState('')

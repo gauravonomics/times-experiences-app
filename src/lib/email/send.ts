@@ -1,4 +1,4 @@
-import { resend } from './resend'
+import { getResend } from './resend'
 import { generateGoogleCalendarUrl } from '@/lib/calendar'
 import { RsvpConfirmationEmail } from './templates/rsvp-confirmation'
 import { WaitlistNotificationEmail } from './templates/waitlist-notification'
@@ -35,7 +35,7 @@ export async function sendRsvpConfirmation(params: {
     return
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `You're confirmed for ${event.title}!`,
@@ -59,7 +59,7 @@ export async function sendWaitlistNotification(params: {
     return
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `You're on the waitlist for ${event.title}`,
@@ -84,7 +84,7 @@ export async function sendWaitlistPromotion(params: {
     return
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Great news! You're confirmed for ${event.title}`,

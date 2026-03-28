@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { cn } from '@/lib/utils'
+import { AddToCalendar } from '@/components/events/add-to-calendar'
+import { AccountPrompt } from '@/components/events/account-prompt'
 
 interface RsvpFormProps {
   eventId: string
@@ -16,6 +17,16 @@ interface RsvpFormProps {
   waitlistEnabled: boolean
   rsvpDeadline: string | null
   isCancelled: boolean
+  eventData: {
+    title: string
+    date: string
+    end_date: string | null
+    venue_name: string
+    venue_address: string
+    description: string | null
+    slug: string
+    id: string
+  }
 }
 
 type FormState =
@@ -50,6 +61,7 @@ export function RsvpForm({
   waitlistEnabled,
   rsvpDeadline,
   isCancelled,
+  eventData,
 }: RsvpFormProps) {
   const [formState, setFormState] = useState<FormState>('idle')
   const [name, setName] = useState('')
@@ -296,11 +308,15 @@ export function RsvpForm({
                 : `Thanks, ${successResult.name}. We'll email you if a spot opens up.`}
             </p>
 
-            {/* AddToCalendar component will be integrated here */}
-            <div id="add-to-calendar-slot" className="mt-4" />
+            {successResult.status === 'confirmed' && (
+              <div className="mt-4">
+                <AddToCalendar event={eventData} />
+              </div>
+            )}
 
-            {/* AccountPrompt component will be integrated here */}
-            <div id="account-prompt-slot" className="mt-4" />
+            <div className="mt-4">
+              <AccountPrompt email={email} name={name} />
+            </div>
           </div>
         </div>
       </div>

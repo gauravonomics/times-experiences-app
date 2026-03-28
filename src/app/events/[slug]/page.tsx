@@ -213,6 +213,16 @@ export default async function PublicEventPage({
             waitlistEnabled={event.waitlist_enabled}
             rsvpDeadline={event.rsvp_deadline}
             isCancelled={isCancelled}
+            eventData={{
+              title: event.title,
+              date: event.date,
+              end_date: event.end_date,
+              venue_name: event.venue_name,
+              venue_address: event.venue_address,
+              description: event.description,
+              slug: event.slug,
+              id: event.id,
+            }}
           />
 
           {/* Capacity Indicator */}

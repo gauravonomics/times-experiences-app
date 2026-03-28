@@ -272,6 +272,57 @@ export type Database = {
           },
         ]
       }
+      function_call_logs: {
+        Row: {
+          id: string
+          conversation_id: string
+          account_id: string
+          tool_name: string
+          parameters: Json
+          result: Json | null
+          error: string | null
+          latency_ms: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          account_id: string
+          tool_name: string
+          parameters?: Json
+          result?: Json | null
+          error?: string | null
+          latency_ms?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          account_id?: string
+          tool_name?: string
+          parameters?: Json
+          result?: Json | null
+          error?: string | null
+          latency_ms?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'function_call_logs_conversation_id_fkey'
+            columns: ['conversation_id']
+            isOneToOne: false
+            referencedRelation: 'agent_conversations'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'function_call_logs_account_id_fkey'
+            columns: ['account_id']
+            isOneToOne: false
+            referencedRelation: 'accounts'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -317,3 +368,8 @@ export type RsvpUpdate = Database['public']['Tables']['rsvps']['Update']
 export type AgentConversation = Database['public']['Tables']['agent_conversations']['Row']
 export type AgentConversationInsert = Database['public']['Tables']['agent_conversations']['Insert']
 export type AgentConversationUpdate = Database['public']['Tables']['agent_conversations']['Update']
+
+// function_call_logs
+export type FunctionCallLog = Database['public']['Tables']['function_call_logs']['Row']
+export type FunctionCallLogInsert = Database['public']['Tables']['function_call_logs']['Insert']
+export type FunctionCallLogUpdate = Database['public']['Tables']['function_call_logs']['Update']

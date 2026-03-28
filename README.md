@@ -90,3 +90,68 @@ supabase/
 6 tables: `events`, `rsvps`, `brands`, `templates`, `accounts`, `agent_conversations`. See `supabase/migrations/001_initial_schema.sql` for full schema.
 
 RLS policies enforce: public reads published events, public creates RSVPs on published events, admin-only for everything else.
+
+## Testing
+
+```bash
+npm test          # run once
+npm run test:watch  # watch mode
+```
+
+Tests live in `src/__tests__/`. The agent evaluation suite (`agent-eval.test.ts`) verifies tool definitions, view routing, type contracts, and configuration without requiring a running server.
+
+## Production Deployment
+
+### Supabase Production Project
+
+1. Create a new Supabase project at https://supabase.com/dashboard
+2. Note the Project URL, anon key, and service role key
+3. Run database migrations:
+   ```bash
+   # Install Supabase CLI if not already
+   npx supabase login
+   npx supabase link --project-ref your-project-ref
+   npx supabase db push
+   ```
+4. Verify RLS policies are active:
+   - `events`: Public read for published/cancelled events, admin write
+   - `rsvps`: Users can read own RSVPs, admin full access
+   - `brands`: Public read, admin write
+   - `templates`: Admin only
+   - `accounts`: Admin only
+   - `agent_conversations`: Owner read/write
+   - `function_call_logs`: Admin only
+5. Create an admin user:
+   ```sql
+   -- In Supabase SQL Editor, after creating a user via Auth
+   INSERT INTO accounts (id, email, name, role)
+   VALUES ('user-uuid-from-auth', 'admin@example.com', 'Admin Name', 'admin');
+   ```
+6. Set up Supabase Storage bucket `images` with public access for event cover images and brand logos
+
+### Vercel Deployment
+
+1. Connect the GitHub repo to Vercel
+2. Set environment variables in Vercel Dashboard > Settings > Environment Variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `OPENAI_API_KEY`
+   - `RESEND_API_KEY`
+   - `NEXT_PUBLIC_SITE_URL`
+3. Deploy:
+   ```bash
+   git push origin main
+   ```
+4. (Optional) Set up custom domain `experiences.timesgroup.com` in Vercel Dashboard > Domains
+
+### Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for the AI agent chat |
+| `RESEND_API_KEY` | Yes | Resend API key for transactional emails |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Public site URL for links in emails and calendar files |

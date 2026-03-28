@@ -55,6 +55,7 @@ export function AccountPrompt({ email, name }: AccountPromptProps) {
           type="email"
           value={email}
           readOnly
+          aria-label="Email address"
           className="flex-1 bg-muted/50 text-muted-foreground"
         />
         <Button

@@ -71,6 +71,7 @@ export function RsvpForm({
   const [successResult, setSuccessResult] = useState<SuccessResult | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState('')
 
   const deadlinePassed = isDeadlinePassed(rsvpDeadline)
   const isDisabled = isCancelled || deadlinePassed
@@ -176,6 +177,7 @@ export function RsvpForm({
     if (!existingRsvp) return
 
     setCancelling(true)
+    setCancelError('')
     try {
       const res = await fetch('/api/rsvps/cancel', {
         method: 'POST',
@@ -194,7 +196,7 @@ export function RsvpForm({
         setPhone('')
       }
     } catch {
-      // Silently fail — user can try again
+      setCancelError('Failed to cancel. Please try again.')
     } finally {
       setCancelling(false)
     }
@@ -234,7 +236,7 @@ export function RsvpForm({
   // ---------------------------------------------------------------
   if (formState === 'existing' && existingRsvp) {
     return (
-      <div className="rounded-xl border border-border p-6">
+      <div className="rounded-xl border border-border p-6" role="status" aria-live="polite">
         <div className="flex items-start gap-3">
           {existingRsvp.status === 'confirmed' ? (
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
@@ -261,22 +263,27 @@ export function RsvpForm({
 
             {(existingRsvp.status === 'confirmed' ||
               existingRsvp.status === 'waitlisted') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-3 text-destructive hover:text-destructive"
-                onClick={handleCancel}
-                disabled={cancelling}
-              >
-                {cancelling ? (
-                  <>
-                    <Loader2 className="size-3 animate-spin" />
-                    Cancelling...
-                  </>
-                ) : (
-                  'Cancel RSVP'
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 text-destructive hover:text-destructive"
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                >
+                  {cancelling ? (
+                    <>
+                      <Loader2 className="size-3 animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    'Cancel RSVP'
+                  )}
+                </Button>
+                {cancelError && (
+                  <p className="mt-2 text-sm text-destructive">{cancelError}</p>
                 )}
-              </Button>
+              </>
             )}
           </div>
         </div>
@@ -289,7 +296,7 @@ export function RsvpForm({
   // ---------------------------------------------------------------
   if (formState === 'success' && successResult) {
     return (
-      <div className="rounded-xl border border-border p-6">
+      <div className="rounded-xl border border-border p-6" role="status" aria-live="polite">
         <div className="flex items-start gap-3">
           {successResult.status === 'confirmed' ? (
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />

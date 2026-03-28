@@ -9,7 +9,7 @@ export function CapacityIndicator({
   confirmedCount,
   waitlistEnabled,
 }: CapacityIndicatorProps) {
-  if (capacity === null) return null
+  if (capacity === null || capacity <= 0) return null
 
   const spotsRemaining = capacity - confirmedCount
   const isFull = spotsRemaining <= 0

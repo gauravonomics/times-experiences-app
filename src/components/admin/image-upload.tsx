@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
 
 interface ImageUploadProps {
   bucket: string
@@ -17,7 +16,7 @@ interface ImageUploadProps {
 
 /**
  * Reusable image upload component for cover images and brand logos.
- * Uploads directly to Supabase Storage and returns the public URL.
+ * Uploads via /api/admin/upload API route (API-first pattern).
  */
 export function ImageUpload({
   bucket,
@@ -45,21 +44,23 @@ export function ImageUpload({
     setError(null)
 
     try {
-      const supabase = createClient()
-      const ext = file.name.split('.').pop()
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', bucket)
+      formData.append('folder', folder)
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, { upsert: true })
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (uploadError) throw uploadError
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(data.error || 'Upload failed')
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName)
-
-      onChange(publicUrl)
+      const { url } = await res.json()
+      onChange(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {

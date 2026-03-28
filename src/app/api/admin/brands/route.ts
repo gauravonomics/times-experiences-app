@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name is required.' }, { status: 400 })
   }
 
+  if (primary_color && !/^#[0-9A-Fa-f]{3,8}$/.test(primary_color)) {
+    return NextResponse.json(
+      { error: 'primary_color must be a valid hex color (e.g. #6366f1).' },
+      { status: 400 }
+    )
+  }
+
   const insert: BrandInsert = {
     name,
     slug: slug || slugify(name),

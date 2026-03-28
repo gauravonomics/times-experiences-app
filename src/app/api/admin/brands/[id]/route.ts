@@ -45,6 +45,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     primary_color?: string | null
   }
 
+  if (primary_color !== undefined && primary_color !== null && !/^#[0-9A-Fa-f]{3,8}$/.test(primary_color)) {
+    return NextResponse.json(
+      { error: 'primary_color must be a valid hex color (e.g. #6366f1).' },
+      { status: 400 }
+    )
+  }
+
   const updates: BrandUpdate = {}
   if (name !== undefined) updates.name = name
   if (slug !== undefined) updates.slug = slug

@@ -13,9 +13,11 @@ export default function EventNotFound() {
           This event may have been removed or the link is incorrect.
         </p>
         <div className="mt-6">
-          <Button variant="outline" render={<Link href="/" />}>
-            Back to home
-          </Button>
+          <Link href="/">
+            <Button variant="outline">
+              Back to home
+            </Button>
+          </Link>
         </div>
       </div>
     </main>

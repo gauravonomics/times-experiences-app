@@ -62,6 +62,16 @@ export default function CreateEventPage() {
     setType(template.type)
     if (template.default_capacity) setCapacity(String(template.default_capacity))
     if (template.description_prompt) setDescription(template.description_prompt)
+
+    // Apply metadata defaults if present (e.g. city, venue from template)
+    if (template.default_metadata && typeof template.default_metadata === 'object') {
+      const meta = template.default_metadata as Record<string, unknown>
+      if (typeof meta.city === 'string') setCity(meta.city)
+      if (typeof meta.venue_name === 'string') setVenueName(meta.venue_name)
+      if (typeof meta.venue_address === 'string') setVenueAddress(meta.venue_address)
+      if (typeof meta.waitlist_enabled === 'boolean') setWaitlistEnabled(meta.waitlist_enabled)
+    }
+
     toast.success(`Applied template: ${template.name}`)
   }
 
@@ -138,7 +148,12 @@ export default function CreateEventPage() {
         type: type.trim() || 'event',
         default_capacity: capacity ? parseInt(capacity, 10) : null,
         description_prompt: description || null,
-        default_metadata: {},
+        default_metadata: {
+          ...(city.trim() && { city: city.trim() }),
+          ...(venueName.trim() && { venue_name: venueName.trim() }),
+          ...(venueAddress.trim() && { venue_address: venueAddress.trim() }),
+          ...(waitlistEnabled && { waitlist_enabled: true }),
+        },
       })
       toast.success('Template saved')
     } catch (err) {

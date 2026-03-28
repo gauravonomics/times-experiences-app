@@ -54,6 +54,21 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceClient()
   const body = await request.json()
 
+  if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
+    return NextResponse.json({ error: 'title is required.' }, { status: 400 })
+  }
+
+  if (body.capacity !== undefined && body.capacity !== null) {
+    const cap = Number(body.capacity)
+    if (!Number.isInteger(cap) || cap < 0) {
+      return NextResponse.json(
+        { error: 'capacity must be a non-negative integer.' },
+        { status: 400 }
+      )
+    }
+    body.capacity = cap
+  }
+
   const slug = slugify(body.title)
   const status = body.status || 'draft'
 

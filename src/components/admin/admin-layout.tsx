@@ -1,17 +1,63 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { TopNav } from '@/components/admin/top-nav'
 import { ContextPanel } from '@/components/admin/context-panel'
 import { ChatDrawer } from '@/components/admin/chat-drawer'
 import { Toaster } from '@/components/ui/sonner'
+import { useCurrentView } from '@/hooks/use-current-view'
+import { resolveViewRoute, type ViewTarget } from '@/components/admin/view-router'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const DRAWER_STORAGE_KEY = 'times-experiences-drawer-open'
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  const router = useRouter()
+
+  // Drawer toggle — persisted via localStorage
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // External message to send to chat drawer (from suggestion card clicks)
+  const [externalMessage, setExternalMessage] = useState<string | null>(null)
+  // Ref to clear external message after it's consumed
+  const externalMessageSentRef = useRef(false)
+
+  // Current view detection from URL
+  const { currentView, currentViewData } = useCurrentView()
+
+  // Load drawer state from localStorage on mount
+  useEffect(() => {
+    setMounted(true)
+    try {
+      const stored = localStorage.getItem(DRAWER_STORAGE_KEY)
+      if (stored === 'true') setDrawerOpen(true)
+    } catch {
+      // localStorage unavailable — use default
+    }
+  }, [])
+
+  // Persist drawer state
+  useEffect(() => {
+    if (!mounted) return
+    try {
+      localStorage.setItem(DRAWER_STORAGE_KEY, String(drawerOpen))
+    } catch {
+      // localStorage unavailable
+    }
+  }, [drawerOpen, mounted])
 
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), [])
 
@@ -26,6 +72,38 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [toggleDrawer])
+
+  // Navigate context panel when agent routes to a view
+  const handleViewChange = useCallback(
+    (target: ViewTarget) => {
+      const path = resolveViewRoute(target)
+      router.push(path)
+    },
+    [router]
+  )
+
+  // Handle suggestion card clicks — open drawer and send message
+  const handleSuggestionClick = useCallback(
+    (action: string) => {
+      setExternalMessage(action)
+      externalMessageSentRef.current = false
+      if (!drawerOpen) setDrawerOpen(true)
+    },
+    [drawerOpen]
+  )
+
+  // Clear external message after it's been consumed by the drawer
+  useEffect(() => {
+    if (externalMessage && !externalMessageSentRef.current) {
+      externalMessageSentRef.current = true
+      // Clear after a tick to let ChatDrawer pick it up
+      const timer = setTimeout(() => setExternalMessage(null), 200)
+      return () => clearTimeout(timer)
+    }
+  }, [externalMessage])
+
+  // Listen for suggestion click custom events from child pages (e.g. dashboard)
+  useSuggestionClickListener(handleSuggestionClick)
 
   return (
     <div className="flex h-screen flex-col">
@@ -42,9 +120,45 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       >
         <ContextPanel>{children}</ContextPanel>
 
-        {drawerOpen && <ChatDrawer onClose={() => setDrawerOpen(false)} />}
+        {drawerOpen && (
+          <ChatDrawer
+            onClose={() => setDrawerOpen(false)}
+            currentView={currentView}
+            currentViewData={currentViewData}
+            onViewChange={handleViewChange}
+            externalMessage={externalMessage}
+          />
+        )}
       </div>
       <Toaster />
     </div>
   )
+}
+
+// Re-export for dashboard page use
+export { type AdminLayoutProps }
+export type { ViewTarget }
+export { useCurrentView } from '@/hooks/use-current-view'
+
+// Context for suggestion card clicks — exposed via a custom event
+// so dashboard page can trigger it without prop drilling
+const SUGGESTION_CLICK_EVENT = 'times-experiences:suggestion-click'
+
+export function dispatchSuggestionClick(action: string) {
+  window.dispatchEvent(
+    new CustomEvent(SUGGESTION_CLICK_EVENT, { detail: action })
+  )
+}
+
+export function useSuggestionClickListener(
+  handler: (action: string) => void
+) {
+  useEffect(() => {
+    function onEvent(e: Event) {
+      const custom = e as CustomEvent<string>
+      handler(custom.detail)
+    }
+    window.addEventListener(SUGGESTION_CLICK_EVENT, onEvent)
+    return () => window.removeEventListener(SUGGESTION_CLICK_EVENT, onEvent)
+  }, [handler])
 }

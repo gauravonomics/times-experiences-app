@@ -19,7 +19,12 @@ import type {
 } from '@/lib/agent/types'
 import { MUTATION_TOOLS } from '@/lib/agent/types'
 
-const openai = new OpenAI()
+// Lazy init — avoid build-time crash when OPENAI_API_KEY is absent
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI()
+  return _openai
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_MESSAGE_LENGTH = 4_000
@@ -465,7 +470,7 @@ export async function POST(request: Request): Promise<Response> {
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        const stream = await openai.chat.completions.create({
+        const stream = await getOpenAI().chat.completions.create({
           model: 'gpt-4.1',
           messages: openaiMessages,
           tools: agentTools,
@@ -667,6 +672,7 @@ export async function POST(request: Request): Promise<Response> {
                   encoder.encode(
                     sseEncode({
                       type: 'confirmation_required',
+                      toolCallId: tc.id,
                       name: toolName,
                       arguments: parsedArgs,
                       preview,
@@ -693,7 +699,7 @@ export async function POST(request: Request): Promise<Response> {
             }
             const followUpMessages = toOpenAIMessages(systemPrompt, newMessages)
 
-            const followUp = await openai.chat.completions.create({
+            const followUp = await getOpenAI().chat.completions.create({
               model: 'gpt-4.1',
               messages: followUpMessages,
               tools: agentTools,
@@ -908,7 +914,7 @@ async function handleConfirmation(
         )
         const openaiMessages = toOpenAIMessages(systemPrompt, updatedMessages)
 
-        const followUp = await openai.chat.completions.create({
+        const followUp = await getOpenAI().chat.completions.create({
           model: 'gpt-4.1',
           messages: openaiMessages,
           tools: agentTools,

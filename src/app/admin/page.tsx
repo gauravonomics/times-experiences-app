@@ -8,6 +8,8 @@ import { ViewHeader } from '@/components/admin/view-header'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { BrandBadge } from '@/components/events/brand-badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SuggestionCards } from '@/components/admin/suggestion-cards'
+import { dispatchSuggestionClick } from '@/components/admin/admin-layout'
 import type { Event, Brand } from '@/lib/supabase/types'
 
 type EventWithBrand = Event & {
@@ -92,16 +94,6 @@ function EventCard({ event }: { event: EventWithBrand }) {
   )
 }
 
-function SuggestionCard({ text }: { text: string }) {
-  return (
-    <Card className="border-dashed opacity-60">
-      <CardContent className="flex items-center gap-3 pt-0">
-        <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{text}</p>
-      </CardContent>
-    </Card>
-  )
-}
 
 export default function DashboardPage() {
   const { data, isLoading } = useSWR<DashboardData>(
@@ -170,7 +162,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Agent Suggestions — static placeholders for now */}
+      {/* Agent Suggestions */}
       <div className="mt-8">
         <CardHeader className="px-0">
           <CardTitle className="flex items-center gap-2">
@@ -181,11 +173,7 @@ export default function DashboardPage() {
             Insights and actions the agent will surface automatically.
           </CardDescription>
         </CardHeader>
-        <div className="space-y-3">
-          <SuggestionCard text="3 events next week with low RSVPs — consider a reminder push." />
-          <SuggestionCard text="Duplicate last month's supper club? It had 94% attendance." />
-          <SuggestionCard text="Saturday's event has 0 check-ins — venue confirmation pending?" />
-        </div>
+        <SuggestionCards onSuggestionClick={dispatchSuggestionClick} />
       </div>
     </div>
   )

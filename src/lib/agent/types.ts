@@ -63,6 +63,7 @@ export interface SSEEvent {
   preview?: Record<string, unknown>
   view?: ViewType
   viewData?: Record<string, string>
+  toolCallId?: string
   error?: string
   failedAttempts?: number
   suggestedActions?: Array<{ label: string; action: string }>

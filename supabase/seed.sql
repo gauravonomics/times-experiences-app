@@ -5,10 +5,14 @@
 -- BRANDS
 -- =============================================================================
 
--- Note: Times Tribes is a platform, Times Lit Fest is an event — neither are brands.
--- Only actual BCCL brands that host events should be seeded here.
+-- BCCL Publishing brands that host events
 INSERT INTO public.brands (name, slug, logo_url, primary_color) VALUES
-  ('Economic Times', 'economic-times', '/logos/economic-times.svg', '#1A1A2E');
+  ('The Times of India', 'times-of-india', NULL, '#E31E24'),
+  ('The Economic Times', 'economic-times', NULL, '#1A1A2E'),
+  ('Navbharat Times', 'navbharat-times', NULL, '#FF6B00'),
+  ('Maharashtra Times', 'maharashtra-times', NULL, '#0066B3'),
+  ('Mumbai Mirror', 'mumbai-mirror', NULL, '#000000'),
+  ('TIMS', 'tims', NULL, '#E91E63');
 
 -- =============================================================================
 -- TEMPLATES

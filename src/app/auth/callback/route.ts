@@ -42,7 +42,13 @@ export async function GET(request: Request) {
           .eq('email', user.email)
           .is('account_id', null)
       }
+    } else {
+      // Code exchange failed — redirect to login with error
+      return NextResponse.redirect(`${origin}/login?error=auth_failed`)
     }
+  } else {
+    // No code provided — redirect to login
+    return NextResponse.redirect(`${origin}/login?error=invalid_link`)
   }
 
   return NextResponse.redirect(`${origin}${redirect}`)

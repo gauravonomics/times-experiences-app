@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation'
 import { Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { BrandBadge } from '@/components/events/brand-badge'
 import { CapacityIndicator } from '@/components/events/capacity-indicator'
 import { RsvpForm } from '@/components/events/rsvp-form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import type { Event, Brand } from '@/lib/supabase/types'
+import DOMPurify from 'isomorphic-dompurify'
 import type { Metadata } from 'next'
 
 function stripHtml(html: string): string {
@@ -56,7 +58,7 @@ export async function generateMetadata({
     .from('events')
     .select('title, description, cover_image_url')
     .eq('slug', slug)
-    .eq('status', 'published')
+    .in('status', ['published', 'cancelled'])
     .single()
 
   const metaEvent = rawEvent as {
@@ -101,7 +103,7 @@ export default async function PublicEventPage({
     .from('events')
     .select('*, brand:brands(*)')
     .eq('slug', slug)
-    .eq('status', 'published')
+    .in('status', ['published', 'cancelled'])
     .single()
 
   const event = rawEvent as unknown as EventWithBrand | null
@@ -110,7 +112,8 @@ export default async function PublicEventPage({
     notFound()
   }
 
-  const { count: rsvpCount } = await supabase
+  const serviceClient = createServiceClient()
+  const { count: rsvpCount } = await serviceClient
     .from('rsvps')
     .select('*', { count: 'exact', head: true })
     .eq('event_id', event.id)
@@ -197,7 +200,7 @@ export default async function PublicEventPage({
               <Separator className="my-8" />
               <div
                 className="prose prose-sm max-w-none text-foreground/90 prose-headings:text-foreground prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
-                dangerouslySetInnerHTML={{ __html: event.description }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
               />
             </>
           )}

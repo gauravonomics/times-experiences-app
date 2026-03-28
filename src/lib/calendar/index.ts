@@ -87,6 +87,7 @@ export function generateIcsContent(event: CalendarEvent): string {
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${uid}`,
+    `DTSTAMP:${formatDateUtc(new Date())}`,
     `DTSTART:${formatDateUtc(start)}`,
     `DTEND:${formatDateUtc(end)}`,
     `SUMMARY:${event.title}`,

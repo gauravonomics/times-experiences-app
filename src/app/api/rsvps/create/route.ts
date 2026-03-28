@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import {
   sendRsvpConfirmation,
   sendWaitlistNotification,
@@ -8,7 +8,15 @@ import {
 import type { Event, Rsvp, Brand } from '@/lib/supabase/types'
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid request body.' },
+      { status: 400 }
+    )
+  }
   const { event_id, name, email, phone } = body as {
     event_id?: string
     name?: string
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // ---------------------------------------------------------------
   // Verify event exists and is published (with brand for email)

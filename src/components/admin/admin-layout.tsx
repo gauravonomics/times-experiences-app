@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { TopNav } from '@/components/admin/top-nav'
 import { ContextPanel } from '@/components/admin/context-panel'
@@ -32,8 +32,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   // External message to send to chat drawer (from suggestion card clicks)
   const [externalMessage, setExternalMessage] = useState<string | null>(null)
-  // Ref to clear external message after it's consumed
-  const externalMessageSentRef = useRef(false)
 
   // Current view detection from URL
   const { currentView, currentViewData } = useCurrentView()
@@ -86,21 +84,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const handleSuggestionClick = useCallback(
     (action: string) => {
       setExternalMessage(action)
-      externalMessageSentRef.current = false
       if (!drawerOpen) setDrawerOpen(true)
     },
     [drawerOpen]
   )
 
-  // Clear external message after it's been consumed by the drawer
-  useEffect(() => {
-    if (externalMessage && !externalMessageSentRef.current) {
-      externalMessageSentRef.current = true
-      // Clear after a tick to let ChatDrawer pick it up
-      const timer = setTimeout(() => setExternalMessage(null), 200)
-      return () => clearTimeout(timer)
-    }
-  }, [externalMessage])
+  // Callback for ChatDrawer to signal it has consumed the external message
+  const handleExternalMessageConsumed = useCallback(() => {
+    setExternalMessage(null)
+  }, [])
 
   // Listen for suggestion click custom events from child pages (e.g. dashboard)
   useSuggestionClickListener(handleSuggestionClick)
@@ -115,7 +107,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div
         className="grid flex-1 overflow-hidden transition-[grid-template-columns] duration-200"
         style={{
-          gridTemplateColumns: drawerOpen ? '1fr 400px' : '1fr',
+          gridTemplateColumns: mounted && drawerOpen ? '1fr 400px' : '1fr',
         }}
       >
         <ContextPanel>{children}</ContextPanel>
@@ -127,6 +119,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             currentViewData={currentViewData}
             onViewChange={handleViewChange}
             externalMessage={externalMessage}
+            onExternalMessageConsumed={handleExternalMessageConsumed}
           />
         )}
       </div>

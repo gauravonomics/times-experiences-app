@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ViewType } from '@/components/admin/view-router'
 import type { SSEEvent, ChatRequest } from '@/lib/agent/types'
 
@@ -23,6 +23,7 @@ export interface ChatMessage {
     viewData?: Record<string, string>
   }
   suggestedActions?: Array<{ label: string; action: string }>
+  retryPayload?: { content: string; context: ChatContext }
 }
 
 export interface ChatContext {
@@ -38,7 +39,8 @@ interface UseAgentChatReturn {
   messages: ChatMessage[]
   isStreaming: boolean
   sendMessage: (content: string, context: ChatContext) => void
-  confirmAction: (confirmed: boolean) => void
+  confirmAction: (confirmed: boolean, context?: ChatContext) => void
+  retryLastMessage: () => void
   loadHistory: () => Promise<void>
 }
 
@@ -81,6 +83,13 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
   // Track the last context for confirmAction (which has no context param)
   const lastContextRef = useRef<ChatContext>({ currentView: 'dashboard' })
 
+  // Abort any in-flight SSE stream when the component unmounts
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
   // ----- parseSSEStream -----
   const parseSSEStream = useCallback(
     async (response: Response, onDone?: () => void) => {
@@ -119,11 +128,11 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
             switch (event.type) {
               case 'text_delta': {
                 if (!streamingMsgId) {
-                  // Start a new assistant message
+                  // Start a new assistant message — remove any pending status messages (e.g. "Thinking...")
                   const id = generateId()
                   streamingMsgId = id
                   setMessages((prev) => [
-                    ...prev,
+                    ...prev.filter((m) => m.role !== 'status'),
                     {
                       id,
                       role: 'assistant',
@@ -166,13 +175,19 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
 
               case 'function_call_result': {
                 const result = event.result
-                if (result) {
-                  // Navigate to the view the function result specifies
+                if (result?.success) {
+                  // Navigate to the view the function result specifies — only on success
                   onViewChange({
                     view: result.view,
                     viewData: result.viewData,
                   })
                 }
+                // Remove the most recent status message (the "Looking up..." for this function call)
+                setMessages((prev) => {
+                  const lastStatusIdx = findLastIndex(prev, (m) => m.role === 'status')
+                  if (lastStatusIdx === -1) return prev
+                  return [...prev.slice(0, lastStatusIdx), ...prev.slice(lastStatusIdx + 1)]
+                })
                 // If suggested actions, attach to the most recent assistant message
                 if (event.suggestedActions?.length) {
                   setMessages((prev) => {
@@ -260,11 +275,15 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       } catch (err) {
         // AbortError is expected on cleanup
         if (err instanceof DOMException && err.name === 'AbortError') {
-          // Silently handle abort
+          // Silently handle abort — but still clear any stuck streaming flags
+          setMessages((prev) =>
+            prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m))
+          )
         } else {
+          // Clear isStreaming on any message that has it stuck, then add error
           const errorId = generateId()
           setMessages((prev) => [
-            ...prev,
+            ...prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
             {
               id: errorId,
               role: 'error',
@@ -294,14 +313,20 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       const controller = new AbortController()
       abortRef.current = controller
 
-      // Append user message
+      // Append user message + a temporary "Thinking..." status indicator
       const userMsg: ChatMessage = {
         id: generateId(),
         role: 'user',
         content: trimmed,
         timestamp: new Date().toISOString(),
       }
-      setMessages((prev) => [...prev, userMsg])
+      const thinkingMsg: ChatMessage = {
+        id: generateId(),
+        role: 'status',
+        content: 'Thinking...',
+        timestamp: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, userMsg, thinkingMsg])
       setIsStreaming(true)
 
       const requestBody: ChatRequest = {
@@ -329,7 +354,8 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
           setIsStreaming(false)
           const errorId = generateId()
           setMessages((prev) => [
-            ...prev,
+            // Remove any lingering status messages (e.g. "Thinking...")
+            ...prev.filter((m) => m.role !== 'status'),
             {
               id: errorId,
               role: 'error',
@@ -338,6 +364,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
                   ? 'Rate limit exceeded. Please wait a moment.'
                   : 'Failed to connect. Please try again.',
               timestamp: new Date().toISOString(),
+              retryPayload: { content: trimmed, context },
             },
           ])
         })
@@ -347,7 +374,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
 
   // ----- confirmAction -----
   const confirmAction = useCallback(
-    (confirmed: boolean) => {
+    (confirmed: boolean, context?: ChatContext) => {
       const pending = pendingRef.current
       if (!pending) return
 
@@ -377,11 +404,12 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
         })
       }
 
+      const effectiveContext = context ?? lastContextRef.current
       const requestBody: ChatRequest = {
         messages: [],
         context: {
-          currentView: lastContextRef.current.currentView,
-          currentViewData: lastContextRef.current.currentViewData,
+          currentView: effectiveContext.currentView,
+          currentViewData: effectiveContext.currentViewData,
         },
         confirmAction: {
           toolCallId: pending.toolCallId,
@@ -422,6 +450,22 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
     },
     [parseSSEStream]
   )
+
+  // ----- retryLastMessage -----
+  const retryLastMessage = useCallback(() => {
+    // Find the last error message with a retryPayload
+    const lastError = [...messages].reverse().find(
+      (m) => m.role === 'error' && m.retryPayload
+    )
+    if (!lastError?.retryPayload) return
+
+    const { content, context } = lastError.retryPayload
+
+    // Remove the error message before retrying
+    setMessages((prev) => prev.filter((m) => m.id !== lastError.id))
+
+    sendMessage(content, context)
+  }, [messages, sendMessage])
 
   // ----- loadHistory -----
   const loadHistory = useCallback(async () => {
@@ -466,6 +510,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
     isStreaming,
     sendMessage,
     confirmAction,
+    retryLastMessage,
     loadHistory,
   }
 }

@@ -5,10 +5,10 @@
 -- BRANDS
 -- =============================================================================
 
+-- Note: Times Tribes is a platform, Times Lit Fest is an event — neither are brands.
+-- Only actual BCCL brands that host events should be seeded here.
 INSERT INTO public.brands (name, slug, logo_url, primary_color) VALUES
-  ('Times Tribes', 'times-tribes', '/logos/times-tribes.svg', '#FF6B00'),
-  ('Economic Times', 'economic-times', '/logos/economic-times.svg', '#1A1A2E'),
-  ('Times Lit Fest', 'times-lit-fest', '/logos/times-lit-fest.svg', '#8B2252');
+  ('Economic Times', 'economic-times', '/logos/economic-times.svg', '#1A1A2E');
 
 -- =============================================================================
 -- TEMPLATES

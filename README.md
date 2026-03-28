@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Times Experiences
 
-## Getting Started
+BCCL's agent-native event management platform. Luma-style event pages with RSVP, admin panel with AI chat sidebar.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 16 (App Router, server components)
+- React 19 + TypeScript (strict)
+- Tailwind CSS v4
+- shadcn/ui + Lucide icons
+- Supabase (Postgres + RLS + Auth)
+
+## Setup
+
+### 1. Environment Variables
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in your Supabase credentials:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Where to Find |
+|----------|--------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard > Settings > API > Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard > Settings > API > anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard > Settings > API > service_role key |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Database Setup
 
-## Learn More
+Run the migration files against your Supabase project:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Option A: Supabase CLI
+supabase db push
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Option B: Manual — paste these in the Supabase SQL Editor in order:
+# 1. supabase/migrations/001_initial_schema.sql
+# 2. supabase/migrations/002_rls_policies.sql
+# 3. supabase/seed.sql
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Create Admin User
 
-## Deploy on Vercel
+In the Supabase Dashboard:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Go to Authentication > Users > Add User
+2. Create a user with email + password
+3. Run this SQL to make them an admin:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sql
+INSERT INTO public.accounts (id, email, name, role)
+VALUES ('<user-uuid-from-step-2>', 'admin@example.com', 'Admin', 'admin');
+```
+
+### 4. Run Development Server
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Login at [http://localhost:3000/login](http://localhost:3000/login).
+
+## Project Structure
+
+```
+src/
+  app/
+    admin/          # Admin routes (protected by middleware)
+      events/       # Event CRUD routes
+      analytics/    # Analytics view
+      brands/       # Brand management
+      templates/    # Template management
+    auth/callback/  # Supabase auth callback
+    events/[slug]/  # Public event pages
+    login/          # Admin login (email + password)
+  components/
+    admin/          # AdminLayout, TopNav, ContextPanel, ChatDrawer
+    ui/             # shadcn/ui components
+  lib/
+    supabase/       # Client utilities (server.ts, client.ts), types
+supabase/
+  migrations/       # SQL migration files (schema, RLS)
+  seed.sql          # Seed data (3 brands, 3 templates)
+```
+
+## Database Schema
+
+6 tables: `events`, `rsvps`, `brands`, `templates`, `accounts`, `agent_conversations`. See `supabase/migrations/001_initial_schema.sql` for full schema.
+
+RLS policies enforce: public reads published events, public creates RSVPs on published events, admin-only for everything else.

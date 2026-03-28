@@ -40,10 +40,13 @@ export function TopNav({ drawerOpen, onToggleDrawer }: TopNavProps) {
   }
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } finally {
+      router.push('/login')
+      router.refresh()
+    }
   }
 
   return (

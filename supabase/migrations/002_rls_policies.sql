@@ -260,32 +260,44 @@ CREATE POLICY "rsvps_delete_admin"
   USING (public.is_admin());
 
 -- =============================================================================
--- AGENT_CONVERSATIONS POLICIES
+-- ACCOUNTS — ADMIN DELETE
 -- =============================================================================
 
--- Users can read their own conversations
+-- Admins can delete accounts
+CREATE POLICY "accounts_delete_admin"
+  ON public.accounts
+  FOR DELETE
+  TO authenticated
+  USING (public.is_admin());
+
+-- =============================================================================
+-- AGENT_CONVERSATIONS POLICIES
+-- Per PRD: agent conversations are per admin user only.
+-- =============================================================================
+
+-- Admins can read their own conversations
 CREATE POLICY "agent_conversations_select_own"
   ON public.agent_conversations
   FOR SELECT
   TO authenticated
-  USING (account_id = auth.uid());
+  USING (account_id = auth.uid() AND public.is_admin());
 
--- Users can insert their own conversations
+-- Admins can insert their own conversations
 CREATE POLICY "agent_conversations_insert_own"
   ON public.agent_conversations
   FOR INSERT
   TO authenticated
-  WITH CHECK (account_id = auth.uid());
+  WITH CHECK (account_id = auth.uid() AND public.is_admin());
 
--- Users can update their own conversations
+-- Admins can update their own conversations
 CREATE POLICY "agent_conversations_update_own"
   ON public.agent_conversations
   FOR UPDATE
   TO authenticated
-  USING (account_id = auth.uid())
-  WITH CHECK (account_id = auth.uid());
+  USING (account_id = auth.uid() AND public.is_admin())
+  WITH CHECK (account_id = auth.uid() AND public.is_admin());
 
--- Admins can read all conversations
+-- Admins can read all conversations (for oversight)
 CREATE POLICY "agent_conversations_select_admin"
   ON public.agent_conversations
   FOR SELECT

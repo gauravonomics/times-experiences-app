@@ -50,12 +50,12 @@ export function TopNav({ drawerOpen, onToggleDrawer }: TopNavProps) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center border-b border-border bg-background px-4">
-      <Link href="/admin" className="mr-6 text-lg font-semibold tracking-tight">
+    <header className="flex h-14 shrink-0 items-center bg-primary px-4">
+      <Link href="/admin" className="mr-6 font-heading text-lg font-semibold tracking-tight text-primary-foreground">
         Times Experiences
       </Link>
 
-      <Separator orientation="vertical" className="mr-4 h-6" />
+      <Separator orientation="vertical" className="mr-4 h-6 bg-primary-foreground/20" />
 
       <nav aria-label="Admin navigation" className="flex items-center gap-1">
         {navItems.map((item) => {
@@ -64,9 +64,13 @@ export function TopNav({ drawerOpen, onToggleDrawer }: TopNavProps) {
           return (
             <Link key={item.href} href={item.href}>
               <Button
-                variant={active ? 'secondary' : 'ghost'}
+                variant="ghost"
                 size="sm"
-                className="gap-2"
+                className={`gap-2 ${
+                  active
+                    ? 'bg-gold/20 text-gold hover:bg-gold/25 hover:text-gold'
+                    : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                }`}
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden md:inline">{item.label}</span>
@@ -78,18 +82,22 @@ export function TopNav({ drawerOpen, onToggleDrawer }: TopNavProps) {
 
       <div className="ml-auto flex items-center gap-2">
         <Button
-          variant={drawerOpen ? 'secondary' : 'ghost'}
+          variant="ghost"
           size="sm"
           onClick={onToggleDrawer}
-          className="gap-2"
+          className={`gap-2 ${
+            drawerOpen
+              ? 'bg-gold/20 text-gold hover:bg-gold/25 hover:text-gold'
+              : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+          }`}
         >
           <MessageSquare className="h-4 w-4" />
           <span className="hidden md:inline">Assistant</span>
         </Button>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 bg-primary-foreground/20" />
 
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground">
           <LogOut className="h-4 w-4" />
           <span className="hidden md:inline">Sign out</span>
         </Button>

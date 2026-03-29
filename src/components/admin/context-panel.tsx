@@ -22,7 +22,7 @@ export function ContextPanel({ children }: ContextPanelProps) {
   }, [pathname])
 
   return (
-    <main className="flex min-w-0 flex-col overflow-hidden">
+    <main className="flex min-w-0 flex-col overflow-hidden bg-background">
       <div
         className="flex-1 overflow-y-auto p-6 transition-opacity duration-200"
         style={{ opacity: visible ? 1 : 0 }}

@@ -37,8 +37,8 @@ function StatCard({
   return (
     <Card>
       <CardContent className="flex items-center gap-4 pt-0">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <Icon className="h-5 w-5 text-muted-foreground" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold/10">
+          <Icon className="h-5 w-5 text-gold" />
         </div>
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{title}</p>
@@ -65,7 +65,7 @@ function EventCard({ event }: { event: EventWithBrand }) {
 
   return (
     <Link href={`/admin/events/${event.id}`} className="block">
-      <Card className="transition-colors hover:bg-muted/50">
+      <Card className="bg-surface-container-low transition-colors hover:bg-surface-container">
         <CardContent className="flex items-start justify-between gap-4 pt-0">
           <div className="min-w-0 space-y-1">
             <p className="font-medium leading-snug">{event.title}</p>
@@ -136,9 +136,11 @@ export default function DashboardPage() {
         />
       </div>
 
+      <hr className="editorial-rule mt-8 !mx-0" />
+
       {/* Upcoming Events */}
       <div className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Upcoming Events</h2>
+        <h2 className="mb-3 font-heading text-lg font-semibold">Upcoming Events</h2>
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -165,8 +167,8 @@ export default function DashboardPage() {
       {/* Agent Suggestions */}
       <div className="mt-8">
         <CardHeader className="px-0">
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 font-heading">
+            <Sparkles className="h-4 w-4 text-gold" />
             Agent Suggestions
           </CardTitle>
           <CardDescription>

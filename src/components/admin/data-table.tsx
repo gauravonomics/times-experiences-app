@@ -78,10 +78,10 @@ export function DataTable<T>({
   }, [data, sortKey, sortDir, columns])
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="border-0 bg-surface-container-high hover:bg-surface-container-high">
             {columns.map((col) => (
               <TableHead key={col.key}>
                 {col.sortable ? (
@@ -111,7 +111,7 @@ export function DataTable<T>({
         </TableHeader>
         <TableBody>
           {sorted.length === 0 ? (
-            <TableRow>
+            <TableRow className="border-0">
               <TableCell
                 colSpan={columns.length}
                 className="h-24 text-center text-muted-foreground"
@@ -120,10 +120,12 @@ export function DataTable<T>({
               </TableCell>
             </TableRow>
           ) : (
-            sorted.map((row) => (
+            sorted.map((row, idx) => (
               <TableRow
                 key={rowKey(row)}
-                className={onRowClick ? 'cursor-pointer' : undefined}
+                className={`border-0 transition-colors hover:bg-surface-container ${
+                  idx % 2 === 0 ? 'bg-background' : 'bg-surface-container-low'
+                } ${onRowClick ? 'cursor-pointer' : ''}`}
                 onClick={() => onRowClick?.(row)}
               >
                 {columns.map((col) => (

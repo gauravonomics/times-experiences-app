@@ -1,13 +1,12 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
-import { Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Calendar, MapPin, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { BrandBadge } from '@/components/events/brand-badge'
 import { CapacityIndicator } from '@/components/events/capacity-indicator'
 import { RsvpForm } from '@/components/events/rsvp-form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
 import type { Event, Brand } from '@/lib/supabase/types'
 import DOMPurify from 'isomorphic-dompurify'
 import type { Metadata } from 'next'
@@ -130,7 +129,7 @@ export default async function PublicEventPage({
   const brand = event.brand
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl">
         {/* Cover Image */}
         {event.cover_image_url ? (
@@ -167,7 +166,7 @@ export default async function PublicEventPage({
           )}
 
           {/* Title */}
-          <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
+          <h1 className="font-heading text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
             {event.title}
           </h1>
 
@@ -183,7 +182,7 @@ export default async function PublicEventPage({
           {/* Date / Time / Venue */}
           <div className="mt-6 space-y-3">
             <div className="flex items-start gap-3 text-foreground">
-              <Calendar className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+              <Calendar className="mt-0.5 size-5 shrink-0 text-gold" />
               <div>
                 <p className="font-medium">{formatDate(event.date)}</p>
                 <p className="text-sm text-muted-foreground">
@@ -193,7 +192,7 @@ export default async function PublicEventPage({
             </div>
 
             <div className="flex items-start gap-3 text-foreground">
-              <MapPin className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+              <MapPin className="mt-0.5 size-5 shrink-0 text-gold" />
               <div>
                 <p className="font-medium">{event.venue_name}</p>
                 <p className="text-sm text-muted-foreground">
@@ -203,59 +202,61 @@ export default async function PublicEventPage({
             </div>
           </div>
 
-          {/* Description — content is admin-authored rich text from Tiptap editor */}
+          {/* Description — content is admin-authored rich text, sanitized with DOMPurify */}
           {event.description && (
             <>
-              <Separator className="my-8" />
+              <div className="editorial-rule mt-8" />
               <div
-                className="prose prose-sm max-w-none text-foreground/90 prose-headings:text-foreground prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+                className="prose prose-sm max-w-none text-foreground/90 prose-headings:font-heading prose-headings:text-foreground prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
               />
             </>
           )}
 
-          <Separator className="my-8" />
+          <div className="editorial-rule" />
 
           {/* RSVP Section */}
-          <RsvpForm
-            eventId={event.id}
-            eventTitle={event.title}
-            capacity={event.capacity}
-            confirmedCount={confirmedCount}
-            waitlistEnabled={event.waitlist_enabled}
-            rsvpDeadline={event.rsvp_deadline}
-            isCancelled={isCancelled}
-            eventData={{
-              title: event.title,
-              date: event.date,
-              end_date: event.end_date,
-              venue_name: event.venue_name,
-              venue_address: event.venue_address,
-              description: event.description,
-              slug: event.slug,
-              id: event.id,
-            }}
-          />
-
-          {/* Capacity Indicator */}
-          <div className="mt-6">
-            <CapacityIndicator
+          <div className="-mx-5 bg-surface-container px-5 py-8 sm:-mx-8 sm:px-8">
+            <RsvpForm
+              eventId={event.id}
+              eventTitle={event.title}
               capacity={event.capacity}
               confirmedCount={confirmedCount}
               waitlistEnabled={event.waitlist_enabled}
+              rsvpDeadline={event.rsvp_deadline}
+              isCancelled={isCancelled}
+              eventData={{
+                title: event.title,
+                date: event.date,
+                end_date: event.end_date,
+                venue_name: event.venue_name,
+                venue_address: event.venue_address,
+                description: event.description,
+                slug: event.slug,
+                id: event.id,
+              }}
             />
-          </div>
 
-          {/* Attendee Count */}
-          {confirmedCount > 0 && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="size-4" />
-              <span>
-                {confirmedCount} {confirmedCount === 1 ? 'person' : 'people'}{' '}
-                going
-              </span>
+            {/* Capacity Indicator */}
+            <div className="mt-6">
+              <CapacityIndicator
+                capacity={event.capacity}
+                confirmedCount={confirmedCount}
+                waitlistEnabled={event.waitlist_enabled}
+              />
             </div>
-          )}
+
+            {/* Attendee Count */}
+            {confirmedCount > 0 && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="size-4 text-gold" />
+                <span>
+                  {confirmedCount} {confirmedCount === 1 ? 'person' : 'people'}{' '}
+                  going
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </main>

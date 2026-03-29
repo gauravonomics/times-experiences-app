@@ -53,8 +53,8 @@ export function SuggestionCards({ onSuggestionClick }: SuggestionCardsProps) {
   // Error or no data
   if (error || !data?.suggestions?.length) {
     return (
-      <div className="rounded-lg border border-dashed border-border py-8 text-center">
-        <Sparkles className="mx-auto h-5 w-5 text-muted-foreground/50" />
+      <div className="rounded-lg bg-surface-container-low py-8 text-center">
+        <Sparkles className="mx-auto h-5 w-5 text-gold/50" />
         <p className="mt-2 text-sm text-muted-foreground">
           No suggestions right now. Check back after creating events.
         </p>
@@ -66,7 +66,7 @@ export function SuggestionCards({ onSuggestionClick }: SuggestionCardsProps) {
 
   if (visible.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border py-8 text-center">
+      <div className="rounded-lg bg-surface-container-low py-8 text-center">
         <p className="text-sm text-muted-foreground">
           All suggestions dismissed. New ones will appear as events progress.
         </p>
@@ -79,11 +79,11 @@ export function SuggestionCards({ onSuggestionClick }: SuggestionCardsProps) {
       {visible.map((suggestion) => (
         <Card
           key={suggestion.id}
-          className="group cursor-pointer transition-colors hover:bg-muted/50"
+          className="group cursor-pointer bg-surface-container-low transition-colors hover:bg-surface-container"
           onClick={() => onSuggestionClick(suggestion.action)}
         >
           <CardContent className="flex items-start gap-3 pt-0">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium leading-snug">
                 {suggestion.title}

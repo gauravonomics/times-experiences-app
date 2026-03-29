@@ -36,9 +36,9 @@ export function CapacityIndicator({
         <span className="font-medium text-foreground">{spotsRemaining}</span> of{' '}
         {capacity} spots remaining
       </p>
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="mt-2 h-1.5 w-full overflow-hidden bg-muted">
         <div
-          className="h-full rounded-full bg-foreground/80 transition-all"
+          className="h-full bg-gold transition-all"
           style={{ width: `${Math.min((confirmedCount / capacity) * 100, 100)}%` }}
         />
       </div>

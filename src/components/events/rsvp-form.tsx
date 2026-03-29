@@ -207,7 +207,7 @@ export function RsvpForm({
   // ---------------------------------------------------------------
   if (isDisabled) {
     return (
-      <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">
+      <div className="bg-surface-container-low p-6 text-center">
         <p className="font-medium text-muted-foreground">
           {isCancelled ? 'This event has been cancelled' : 'Registration closed'}
         </p>
@@ -222,7 +222,7 @@ export function RsvpForm({
 
   if (isFull) {
     return (
-      <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">
+      <div className="bg-surface-container-low p-6 text-center">
         <p className="font-medium text-muted-foreground">Registration full</p>
         <p className="mt-1 text-sm text-muted-foreground">
           This event has reached capacity and the waitlist is not available.
@@ -236,7 +236,7 @@ export function RsvpForm({
   // ---------------------------------------------------------------
   if (formState === 'existing' && existingRsvp) {
     return (
-      <div className="rounded-xl border border-border p-6" role="status" aria-live="polite">
+      <div className="bg-surface-container-low p-6" role="status" aria-live="polite">
         <div className="flex items-start gap-3">
           {existingRsvp.status === 'confirmed' ? (
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
@@ -296,7 +296,7 @@ export function RsvpForm({
   // ---------------------------------------------------------------
   if (formState === 'success' && successResult) {
     return (
-      <div className="rounded-xl border border-border p-6" role="status" aria-live="polite">
+      <div className="bg-surface-container-low p-6" role="status" aria-live="polite">
         <div className="flex items-start gap-3">
           {successResult.status === 'confirmed' ? (
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
@@ -338,7 +338,7 @@ export function RsvpForm({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-foreground">
+      <h2 className="font-heading text-xl font-semibold text-foreground">
         {willBeWaitlisted ? 'Join the waitlist' : 'Register'}
       </h2>
 
@@ -361,7 +361,7 @@ export function RsvpForm({
             required
             minLength={2}
             disabled={formState === 'submitting'}
-            className="h-11"
+            className="h-11 bg-transparent border-0 border-b-2 border-border rounded-none focus:border-gold focus:ring-0"
           />
         </div>
 
@@ -376,7 +376,7 @@ export function RsvpForm({
             onBlur={handleEmailBlur}
             required
             disabled={formState === 'submitting'}
-            className="h-11"
+            className="h-11 bg-transparent border-0 border-b-2 border-border rounded-none focus:border-gold focus:ring-0"
           />
           {formState === 'checking' && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -397,14 +397,13 @@ export function RsvpForm({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             disabled={formState === 'submitting'}
-            className="h-11"
+            className="h-11 bg-transparent border-0 border-b-2 border-border rounded-none focus:border-gold focus:ring-0"
           />
         </div>
 
-        <Button
+        <button
           type="submit"
-          size="lg"
-          className="w-full h-11"
+          className="btn-gold w-full h-12 text-sm tracking-wide flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={formState === 'submitting' || formState === 'checking'}
         >
           {formState === 'submitting' ? (
@@ -417,7 +416,7 @@ export function RsvpForm({
           ) : (
             'Register'
           )}
-        </Button>
+        </button>
       </form>
     </div>
   )

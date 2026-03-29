@@ -259,25 +259,23 @@ export function ChatDrawer({
   const shouldShowOnboarding = canShowOnboarding
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-background">
+    <div className="flex h-full flex-col bg-[#131733]">
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-primary-foreground/10 px-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">AI Assistant</h2>
+          <Sparkles className="h-4 w-4 text-gold" />
+          <h2 className="text-sm font-semibold text-primary-foreground">AI Assistant</h2>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-8 w-8"
+          className="h-8 w-8 text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
           aria-label="Close chat drawer"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
-
-      <Separator />
 
       {/* Message list */}
       <div
@@ -291,7 +289,7 @@ export function ChatDrawer({
         {/* Fix 10: History load error */}
         {isHistoryError && messages.length === 0 && (
           <div className="flex items-center justify-center py-4">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-primary-foreground/50">
               Could not load chat history. Start a new conversation below.
             </span>
           </div>
@@ -305,7 +303,7 @@ export function ChatDrawer({
                 key={msg.id}
                 className="space-y-2 animate-in fade-in duration-300"
               >
-                <div className="rounded-lg bg-muted/60 px-3 py-2 text-xs dark:bg-muted/40">
+                <div className="rounded-lg bg-[#1e2340] px-3 py-2 text-xs text-primary-foreground">
                   {msg.content}
                 </div>
                 {msg.actions && (
@@ -315,7 +313,7 @@ export function ChatDrawer({
                         key={a.message}
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2.5 text-[11px]"
+                        className="h-7 border-primary-foreground/10 bg-transparent px-2.5 text-[11px] text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground"
                         onClick={() => handleOnboardingAction(a.message)}
                       >
                         {a.label}
@@ -344,10 +342,8 @@ export function ChatDrawer({
         <div ref={messagesEndRef} />
       </div>
 
-      <Separator />
-
       {/* Input area */}
-      <div className="flex items-end gap-2 p-3">
+      <div className="flex items-end gap-2 border-t border-primary-foreground/10 p-3">
         <div className="flex flex-1 flex-col gap-1">
           <textarea
             ref={textareaRef}
@@ -359,7 +355,7 @@ export function ChatDrawer({
             disabled={isStreaming}
             rows={1}
             maxLength={MAX_LENGTH}
-            className="flex-1 resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+            className="flex-1 resize-none rounded-lg border border-primary-foreground/10 bg-[#1e2340] px-3 py-2 text-sm text-primary-foreground outline-none transition-colors placeholder:text-primary-foreground/40 focus-visible:border-gold/50 focus-visible:ring-1 focus-visible:ring-gold/30 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ maxHeight: '120px', fieldSizing: 'content' } as React.CSSProperties}
           />
           {/* Fix 6: Character count warning */}
@@ -368,7 +364,7 @@ export function ChatDrawer({
               className={`text-[10px] text-right ${
                 input.length > MAX_LENGTH
                   ? 'text-destructive'
-                  : 'text-muted-foreground'
+                  : 'text-primary-foreground/40'
               }`}
             >
               {input.length}/{MAX_LENGTH}
@@ -379,7 +375,7 @@ export function ChatDrawer({
           size="icon"
           onClick={handleSend}
           disabled={!input.trim() || isStreaming || input.length > MAX_LENGTH}
-          className="h-9 w-9 shrink-0"
+          className="btn-gold h-9 w-9 shrink-0 disabled:opacity-40"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />
